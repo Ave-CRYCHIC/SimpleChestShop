@@ -1,0 +1,29 @@
+name: AwesomeChestShop
+version: '1.0-SNAPSHOT'
+main: com.keriteal.awesomeChestShop.AwesomeChestShop
+api-version: '1.21'
+depend:
+  - Vault
+folia-supported: true
+commands:
+  shop:
+    usage: /shop protection query [<x> <y> <z>]
+permissions:
+  chestshop.admin:
+    description: 允许玩家使用所有指令
+    default: op
+    children:
+      chestshop.protection.query: true
+      chestshop.protection.set: true
+      chestshop.protection.admin: true
+  chestshop.protection.admin:
+    description: 允许玩家使用所有箱子保护指令
+    children:
+      chestshop.protection.query: true
+      chestshop.protection.set: true
+  chestshop.protection.query:
+    description: 允许玩家查询箱子保护信息
+    default: true
+  chestshop.protection.set:
+    description: 允许玩家设置箱子保护
+    default: op
