@@ -1,5 +1,6 @@
 package com.keriteal.awesomeChestShop.listeners;
 
+import com.keriteal.awesomeChestShop.AwesomeChestShop;
 import com.keriteal.awesomeChestShop.ChestShop;
 import com.keriteal.awesomeChestShop.ShopManager;
 import com.keriteal.awesomeChestShop.utils.ShopUtils;
@@ -51,9 +52,14 @@ public class ProtectionListener implements Listener {
         ChestShop shop = shopManager.getShopAt(block);
         if (shop == null) return;
 
+        logger.info("Deleting chest shop at {}", shop.getChestBlockLocation());
         if (shop.getOwnerId().equals(event.getPlayer().getUniqueId())) {
-            shop.delete();
+            logger.info("Player {} is deleting his own shop", event.getPlayer().getName());
+            if (ShopUtils.isShopMainBlock(block)) {
+                shop.delete();
+            }
         } else {
+            logger.info("Deleting rejected");
             event.setCancelled(true);
         }
     }

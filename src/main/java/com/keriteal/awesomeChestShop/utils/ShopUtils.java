@@ -75,6 +75,14 @@ public class ShopUtils {
         return null;
     }
 
+    public static boolean isShopMainBlock(Block testingBlock) {
+        if (!(testingBlock.getState() instanceof TileState state)) {
+            return false;
+        }
+
+        return NamespacedKeys.SHOP_ID.hasValue(state);
+    }
+
     public static boolean isShopBlock(Block testingBlock) {
         if (!(testingBlock.getState() instanceof TileState state)) {
             return false;

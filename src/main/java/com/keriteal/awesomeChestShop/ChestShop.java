@@ -153,15 +153,18 @@ public final class ChestShop {
     }
 
     public void delete() {
-
         OfflinePlayer owner = Bukkit.getOfflinePlayer(getOwnerId());
 
         Block containerBlock = getChestBlockLocation().getBlock();
         Block signBlock = containerBlock.getRelative(signFace);
         signBlock.setType(Material.AIR);
-        NamespacedKeys.SHOP_ID.removeValueFrom(signBlock);
-        NamespacedKeys.SIGN_ATTACHED_FACE.removeValueFrom(signBlock);
-        NamespacedKeys.SHOP_ID.removeValueFrom(containerBlock);
+
+        if (containerBlock.getState() instanceof TileState tileState) {
+            PersistentDataContainer dataContainer = tileState.getPersistentDataContainer();
+            NamespacedKeys.SHOP_ID.removeValueFrom(dataContainer);
+            NamespacedKeys.SIGN_ATTACHED_FACE.removeValueFrom(dataContainer);
+            tileState.update();
+        }
 
         if (owner instanceof Player player) {
             player.sendMessage(DELETING_SHOP_LEFT

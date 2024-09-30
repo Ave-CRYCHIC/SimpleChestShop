@@ -34,18 +34,8 @@ public class PersistentDataAccessor<P, C> {
         return getValueFrom(tileState.getPersistentDataContainer());
     }
 
-    public void removeValueFrom(PersistentDataContainer dataContainer) {
-        dataContainer.remove(key);
-    }
-
-    public void removeValueFrom(TileState tileState) {
-        removeValueFrom(tileState.getPersistentDataContainer());
-    }
-
-    public void removeValueFrom(Block block) {
-        if (block.getState() instanceof TileState tileState) {
-            removeValueFrom(tileState);
-        }
+    public void removeValueFrom(PersistentDataContainer container) {
+        container.remove(key);
     }
 
     public void setValueTo(PersistentDataContainer dataContainer, C value) {
