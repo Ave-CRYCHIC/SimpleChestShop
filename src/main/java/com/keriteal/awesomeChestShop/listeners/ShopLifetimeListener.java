@@ -84,27 +84,12 @@ public class ShopLifetimeListener implements Listener {
         }
 
         double price = NumberUtils.toDouble(textComponent.content(), -1);
-        if (price == -1) {
+        if (price == -1 || Double.isNaN(price)) {
             player.sendMessage(invalidPriceComponent);
             return;
         }
 
         shopManager.createShop(player, price);
-    }
-
-    @EventHandler
-    public void onChangeShopType(PlayerInteractEvent event) {
-        Block clickedBlock = event.getClickedBlock();
-        if (clickedBlock == null || clickedBlock.getType() != Material.OAK_WALL_SIGN) return;
-        if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
-
-        ChestShop shopOptional = shopManager.getShopAt(clickedBlock);
-        if (shopOptional == null) return;
-
-        UUID playerId = event.getPlayer().getUniqueId();
-        if (playerId != shopOptional.getOwnerId()) return;
-
-        shopManager.changeShopType(shopOptional.getShopUuid(), shopOptional.getShopType().nextType());
     }
 
     private BlockFace getClosestFace(Location centerLocation, Vector hitPosition) {

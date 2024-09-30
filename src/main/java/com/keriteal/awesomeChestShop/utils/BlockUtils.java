@@ -3,6 +3,7 @@ package com.keriteal.awesomeChestShop.utils;
 import com.keriteal.awesomeChestShop.InventorySpace;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
+import org.bukkit.block.DoubleChest;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -41,5 +42,9 @@ public class BlockUtils {
 
     public static Block getTargetingBlock(LivingEntity entity) {
         return entity.getTargetBlockExact(10);
+    }
+
+    public static boolean isDoubleChest(Block block) {
+        return block.getState() instanceof DoubleChest;
     }
 }

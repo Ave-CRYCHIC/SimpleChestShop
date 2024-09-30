@@ -33,7 +33,7 @@ public final class AwesomeChestShop extends JavaPlugin {
         setupEconomy();
         getServer().getPluginManager().registerEvents(new ShopLifetimeListener(this, shopManager), this);
         getServer().getPluginManager().registerEvents(new ProtectionListener(this, shopManager), this);
-        getServer().getPluginManager().registerEvents(new ShopUpdateListener(shopManager), this);
+        getServer().getPluginManager().registerEvents(new ShopUpdateListener(this, shopManager), this);
         getCommand("shop").setExecutor(new ProtectionCommand(this, shopManager));
     }
 

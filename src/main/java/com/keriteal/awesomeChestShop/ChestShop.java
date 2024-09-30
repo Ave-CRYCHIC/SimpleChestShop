@@ -11,6 +11,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.block.*;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.sign.Side;
@@ -127,15 +128,15 @@ public final class ChestShop {
         PersistentDataContainer containerDataContainer = container.getPersistentDataContainer();
 
         // Save data to main chest
-        containerDataContainer.set(AwesomeChestShop.getKeys().shopIdKey, PersistentDataType.STRING, shopUuid.toString());
-        containerDataContainer.set(AwesomeChestShop.getKeys().signAttachedFace, PersistentDataType.INTEGER, getSignFace().ordinal());
+        NamespacedKeys.SHOP_ID.setValueTo(containerDataContainer, this.getShopUuid());
+        NamespacedKeys.SIGN_ATTACHED_FACE.setValueTo(containerDataContainer, this.getSignFace().ordinal());
 
         // Save data to shop sign
-        signDataContainer.set(AwesomeChestShop.getKeys().shopIdKey, PersistentDataType.STRING, shopUuid.toString());
-        signDataContainer.set(AwesomeChestShop.getKeys().shopOwnerKey, PersistentDataType.STRING, playerId.toString());
-        signDataContainer.set(AwesomeChestShop.getKeys().shopItemKey, PersistentDataType.BYTE_ARRAY, getItemStack().serializeAsBytes());
-        signDataContainer.set(AwesomeChestShop.getKeys().shopPriceKey, PersistentDataType.DOUBLE, this.price);
-        signDataContainer.set(AwesomeChestShop.getKeys().shopTypeKey, PersistentDataType.INTEGER, this.getShopType().ordinal());
+        NamespacedKeys.SHOP_OWNER_ID.setValueTo(signDataContainer, this.getOwnerId());
+        NamespacedKeys.SHOP_ID.setValueTo(signDataContainer, this.getShopUuid());
+        NamespacedKeys.SHOP_ITEM.setValueTo(signDataContainer, this.getItemStack());
+        NamespacedKeys.SHOP_TYPE.setValueTo(signDataContainer, this.getShopType().ordinal());
+        NamespacedKeys.SHOP_PRICE.setValueTo(signDataContainer, this.getPrice());
 
         // Save shop location to chunk
         PersistentDataContainer chunkContainer = chestBlockLocation.getChunk().getPersistentDataContainer();
@@ -152,6 +153,21 @@ public final class ChestShop {
     }
 
     public void delete() {
+
+        OfflinePlayer owner = Bukkit.getOfflinePlayer(getOwnerId());
+
+        Block containerBlock = getChestBlockLocation().getBlock();
+        Block signBlock = containerBlock.getRelative(signFace);
+        signBlock.setType(Material.AIR);
+        NamespacedKeys.SHOP_ID.removeValueFrom(signBlock);
+        NamespacedKeys.SIGN_ATTACHED_FACE.removeValueFrom(signBlock);
+        NamespacedKeys.SHOP_ID.removeValueFrom(containerBlock);
+
+        if (owner instanceof Player player) {
+            player.sendMessage(DELETING_SHOP_LEFT
+                    .append(Component.text(getChestBlockLocation().getBlockX() + ", " + getChestBlockLocation().getBlockY() + ", " + getChestBlockLocation().getBlockZ(), NamedTextColor.BLUE))
+                    .append(DELETING_SHOP_RIGHT));
+        }
     }
 
     public boolean create(double price) {
@@ -233,7 +249,7 @@ public final class ChestShop {
 
     public void setShopType(@NotNull ShopType shopType) {
         this.shopType = shopType;
-        if (created) {
+        if (created && Bukkit.isPrimaryThread()) {
             updateWorld();
         }
     }
@@ -253,13 +269,17 @@ public final class ChestShop {
     }
 
     public static ChestShop ofContainer(Block containerBlock) {
-        if (ShopUtils.isValidContainer(containerBlock)) return null;
+        if (!ShopUtils.isValidContainer(containerBlock)) {
+            return null;
+        }
 
         if (!(containerBlock.getState() instanceof Container container)) return null;
 
         PersistentDataContainer chestContainer = container.getPersistentDataContainer();
-        int signFace = chestContainer.getOrDefault(AwesomeChestShop.getKeys().signAttachedFace, PersistentDataType.INTEGER, -1);
-        if (signFace == -1) return null;
+        int signFace = NamespacedKeys.SIGN_ATTACHED_FACE.getValueFrom(chestContainer);
+        if (signFace == -1) {
+            return null;
+        }
 
         BlockFace signRelativeFace = BlockFace.values()[signFace];
         Block signBlock = containerBlock.getRelative(signRelativeFace);
@@ -272,44 +292,47 @@ public final class ChestShop {
         PersistentDataContainer chestDataContainer = container.getPersistentDataContainer();
         PersistentDataContainer signContainer = sign.getPersistentDataContainer();
 
-        String shopUuid = chestDataContainer.getOrDefault(AwesomeChestShop.getKeys().shopIdKey, PersistentDataType.STRING, "");
-        if (shopUuid.isEmpty()) return null;
+        UUID shopUuid = NamespacedKeys.SHOP_ID.getValueFrom(chestDataContainer);
+        if (shopUuid == null) return null;
 
-        int signFace = chestDataContainer.getOrDefault(AwesomeChestShop.getKeys().signAttachedFace, PersistentDataType.INTEGER, -1);
-        if (signFace == -1) return null;
+        int signFace = NamespacedKeys.SIGN_ATTACHED_FACE.getValueFrom(chestDataContainer);
+        if (signFace == -1) throw new IllegalStateException("商店" + shopUuid + "数据损坏: 告示牌方位");
 
-        String ownerId = signContainer.getOrDefault(AwesomeChestShop.getKeys().shopOwnerKey, PersistentDataType.STRING, "");
-        if (ownerId.isEmpty()) return null;
+        UUID ownerId = NamespacedKeys.SHOP_OWNER_ID.getValueFrom(signContainer);
+        if (ownerId == null) throw new IllegalStateException("商店" + shopUuid + "数据损坏: 创建者");
 
-        ItemStack item = ItemStack.deserializeBytes(signContainer.get(AwesomeChestShop.getKeys().shopItemKey, PersistentDataType.BYTE_ARRAY));
+        ItemStack item = NamespacedKeys.SHOP_ITEM.getValueFrom(signContainer);
+        if (item == null) throw new IllegalStateException("商店" + shopUuid + "数据损坏: 物品");
 
-        double price = signContainer.getOrDefault(AwesomeChestShop.getKeys().shopPriceKey, PersistentDataType.DOUBLE, Double.MAX_VALUE);
+        Double price = NamespacedKeys.SHOP_PRICE.getValueFrom(signContainer);
+        if (price == null) throw new IllegalStateException("商店" + shopUuid + "数据损坏: 价格");
 
-        int shopTypeIndex = signContainer.getOrDefault(AwesomeChestShop.getKeys().shopTypeKey, PersistentDataType.INTEGER, ShopType.SALE_MODE.ordinal());
-        ShopType shopType = ShopType.values()[shopTypeIndex];
+        Integer shopTypeIndex = NamespacedKeys.SHOP_TYPE.getValueFrom(signContainer);
+        ShopType shopType = ShopType.values()[shopTypeIndex == null ? 0 : shopTypeIndex];
 
-        return new ChestShop(UUID.fromString(shopUuid), container.getLocation(), face, UUID.fromString(ownerId), shopType, item, price, true);
+        return new ChestShop(shopUuid, container.getLocation(), face, ownerId, shopType, item, price, true);
     }
 
     @Nullable
     public static ChestShop ofBlock(@Nullable Block block) {
         if (block == null) return null;
-        if (block.getType() == Material.OAK_WALL_SIGN) {
+        if (block.getState() instanceof Sign) {
             return ofSign(block);
         }
-        if (block.getState() instanceof Container) {
-            return ofContainer(block);
-        }
-        return null;
-    }
+        if (block.getState() instanceof Container container) {
+            // 不是大箱子
+            if (!(container.getInventory().getHolder() instanceof DoubleChest doubleChest)) {
+                System.out.println("不是大箱子");
+                return ofContainer(block);
+            }
 
-    public static ChestShop fromLocation(Location location) {
-        Block block = location.getBlock();
-        if (block.getType() == Material.OAK_WALL_SIGN) {
-            return ofSign(block);
-        }
-        if (block.getState() instanceof Container) {
-            return ofContainer(block);
+            if (doubleChest.getLeftSide() instanceof Chest leftChest && NamespacedKeys.SHOP_ID.hasValue(leftChest)) {
+                System.out.println("左边");
+                return ofContainer(leftChest.getBlock());
+            } else if (doubleChest.getRightSide() instanceof Chest rightChest && NamespacedKeys.SHOP_ID.hasValue(rightChest)) {
+                System.out.println("右边");
+                return ofContainer(rightChest.getBlock());
+            }
         }
         return null;
     }

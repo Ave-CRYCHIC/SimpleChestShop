@@ -22,4 +22,7 @@ public class Messages {
     public static final TextComponent MESSAGE_SEPARATOR = Component.text("=====================");
     public static final TextComponent SHOP_TYPE_CHANGED_LEFT = Component.text("商店类型已经更改为", NamedTextColor.GREEN);
     public static final TextComponent INPUT_PRICE = Component.text("请输入物品单价", TextColor.fromHexString("#39C5BB"));
+
+    public static final TextComponent DELETING_SHOP_LEFT = Component.text("你位于", NamedTextColor.RED);
+    public static final TextComponent DELETING_SHOP_RIGHT = Component.text("的商店已经被删除", NamedTextColor.RED);
 }

@@ -215,7 +215,7 @@ public class ProtectionCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        ChestShop shop = shopManager.getShopAt(block.getLocation());
+        ChestShop shop = shopManager.getShopAt(block);
         if (shop == null) {
             sender.sendMessage(Messages.MESSAGE_NO_SHOP);
             return;

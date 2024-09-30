@@ -93,18 +93,18 @@ public class ShopManager {
      */
     @Nullable
     public ChestShop getShopAt(@NotNull Block block) {
-        logger.info("Getting shop at {}, {}, {}", block.getLocation().getBlockX(), block.getLocation().getBlockY(), block.getLocation().getBlockZ());
         UUID shopId = ShopUtils.getShopId(block);
+        logger.info("Getting shop at ({}, {}, {}), shopId: {}", block.getLocation().getBlockX(), block.getLocation().getBlockY(), block.getLocation().getBlockZ(), shopId);
         if (shopId == null) {
-            logger.info("No shop at {}, {}, {}", block.getLocation().getBlockX(), block.getLocation().getBlockY(), block.getLocation().getBlockZ());
             return null;
         }
 
         if (existingShops.containsKey(shopId)) {
-            logger.info("Shop {} at {}, {}, {} already loaded, return this shop.", shopId, block.getLocation().getBlockX(), block.getLocation().getBlockY(), block.getLocation().getBlockZ());
+            logger.info("Shop {} at ({}, {}, {}) already loaded", shopId, block.getLocation().getBlockX(), block.getLocation().getBlockY(), block.getLocation().getBlockZ());
             return existingShops.get(shopId);
         }
-        logger.info("Shop {} at {}, {}, {} not loaded, loading from world...", shopId, block.getLocation().getBlockX(), block.getLocation().getBlockY(), block.getLocation().getBlockZ());
+
+        logger.info("Shop {} at ({}, {}, {}) not loaded, loading from world...", shopId, block.getLocation().getBlockX(), block.getLocation().getBlockY(), block.getLocation().getBlockZ());
         ChestShop shop = ChestShop.ofBlock(block);
         if (shop != null) {
             existingShops.put(shopId, shop);

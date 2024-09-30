@@ -1,8 +1,6 @@
 package com.keriteal.awesomeChestShop.utils;
 
-import com.keriteal.awesomeChestShop.AwesomeChestShop;
-import com.keriteal.awesomeChestShop.ChestShop;
-import com.keriteal.awesomeChestShop.Messages;
+import com.keriteal.awesomeChestShop.*;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -13,31 +11,14 @@ import org.bukkit.World;
 import org.bukkit.block.*;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.DoubleChestInventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
 import javax.annotation.Nullable;
-import java.util.Optional;
 import java.util.UUID;
 
 public class ShopUtils {
-    public static Optional<Sign> getShopSign(Block shopBlock) {
-        if (shopBlock == null) return Optional.empty();
-        if (shopBlock.getState() instanceof Sign signState && signState.getPersistentDataContainer().has(AwesomeChestShop.getKeys().shopOwnerKey)) {
-            return Optional.of(signState);
-        } else if (shopBlock.getState() instanceof Chest chestState) {
-            int signAttachedFace = chestState.getPersistentDataContainer().getOrDefault(AwesomeChestShop.getKeys().signAttachedFace, PersistentDataType.INTEGER, -1);
-            if (signAttachedFace == -1) return Optional.empty();
-
-            Block signBlock = shopBlock.getRelative(BlockFace.values()[signAttachedFace]);
-            if (signBlock.getState() instanceof Sign signState && signState.getPersistentDataContainer().has(AwesomeChestShop.getKeys().shopOwnerKey)) {
-                return Optional.of(signState);
-            }
-        }
-
-        return Optional.empty();
-    }
-
     /**
      * 获取商店的ID (更慢)
      *
@@ -58,74 +39,68 @@ public class ShopUtils {
      */
     @Nullable
     public static UUID getShopId(Block block) {
-        if (block.getState() instanceof Chest chest) {
-            PersistentDataContainer container = chest.getPersistentDataContainer();
-            String shopId = container.get(AwesomeChestShop.getKeys().shopIdKey, PersistentDataType.STRING);
-            if (shopId == null) return null;
-            if (!(chest.getInventory() instanceof DoubleChestInventory doubleChestInventory)) return null;
+        if (block.getState() instanceof Container container) {
+            UUID shopId = NamespacedKeys.SHOP_ID.getValueFrom(container);
+            if (shopId != null) return shopId;
+
+            if (!(container.getInventory() instanceof DoubleChestInventory doubleChestInventory)) {
+                return null;
+            }
 
             Location leftLocation = doubleChestInventory.getLeftSide().getLocation();
             Location rightLocation = doubleChestInventory.getRightSide().getLocation();
-            if (leftLocation == null || rightLocation == null) return null;
+            if (leftLocation == null || rightLocation == null) {
+                return null;
+            }
 
             Block leftBlock = leftLocation.getBlock();
-            Block rightBlock = rightLocation.getBlock();
-            if (!(leftBlock.getState() instanceof Chest leftChest) || !(rightBlock.getState() instanceof Chest rightChest))
+            if (!(leftBlock.getState() instanceof Chest leftChest)) {
                 return null;
+            }
 
             PersistentDataContainer leftContainer = leftChest.getPersistentDataContainer();
+            UUID leftUuid = NamespacedKeys.SHOP_ID.getValueFrom(leftContainer);
+            if (leftUuid != NamespacedKeys.SHOP_ID.getDefaultValue()) return leftUuid;
+
+            Block rightBlock = rightLocation.getBlock();
+            if (!(rightBlock.getState() instanceof Chest rightChest)) {
+                return null;
+            }
             PersistentDataContainer rightContainer = rightChest.getPersistentDataContainer();
-            if (leftContainer.has(AwesomeChestShop.getKeys().shopIdKey, PersistentDataType.STRING)) {
-                return UUID.fromString(leftContainer.getOrDefault(AwesomeChestShop.getKeys().shopIdKey, PersistentDataType.STRING, ""));
-            } else if (rightContainer.has(AwesomeChestShop.getKeys().shopIdKey, PersistentDataType.STRING)) {
-                return UUID.fromString(rightContainer.getOrDefault(AwesomeChestShop.getKeys().shopIdKey, PersistentDataType.STRING, ""));
-            }
+            UUID rightShopId = NamespacedKeys.SHOP_ID.getValueFrom(rightContainer);
+            if (rightShopId != NamespacedKeys.SHOP_ID.getDefaultValue()) return rightShopId;
         } else if (block.getState() instanceof Sign sign) {
-            PersistentDataContainer container = sign.getPersistentDataContainer();
-            if (container.has(AwesomeChestShop.getKeys().shopIdKey, PersistentDataType.STRING)) {
-                return UUID.fromString(container.getOrDefault(AwesomeChestShop.getKeys().shopIdKey, PersistentDataType.STRING, ""));
-            }
+            return NamespacedKeys.SHOP_ID.getValueFrom(sign);
         }
         return null;
     }
 
     public static boolean isShopBlock(Block testingBlock) {
-        if (testingBlock.getState() instanceof TileState state) {
-            return state.getPersistentDataContainer().has(AwesomeChestShop.getKeys().shopIdKey);
+        if (!(testingBlock.getState() instanceof TileState state)) {
+            return false;
         }
 
+        if (NamespacedKeys.SHOP_ID.hasValue(state)) {
+            return true;
+        }
+
+        if (testingBlock.getState() instanceof Container container && container.getInventory() instanceof DoubleChestInventory doubleChestInventory) {
+            DoubleChest doubleChest = doubleChestInventory.getHolder();
+            if (doubleChest == null) {
+                return false;
+            }
+
+            System.out.println("isShopBlock: double chest");
+            Chest leftSide = (Chest) doubleChest.getLeftSide();
+            Chest rightSide = (Chest) doubleChest.getRightSide();
+            if (leftSide == null || rightSide == null) {
+                System.out.println("isShopBlock: left or right side is null");
+                return false;
+            }
+
+            return NamespacedKeys.SHOP_ID.hasValue(leftSide) || NamespacedKeys.SHOP_ID.hasValue(rightSide);
+        }
         return false;
-    }
-
-    /**
-     * 检查一个地方是否可以创建商店
-     *
-     * @param checkingLocation
-     * @return
-     */
-    public static boolean checkShopAvailable(Location checkingLocation) {
-        Block checkingBlock = checkingLocation.getBlock();
-        if (isValidContainer(checkingBlock)) return false;
-
-        if (checkingBlock.getState() instanceof Chest chest) {
-            if (chest.getInventory() instanceof DoubleChestInventory doubleChest) {
-                World world = checkingLocation.getWorld();
-                Block leftSide = world.getBlockAt(doubleChest.getLeftSide().getLocation());
-                Block rightSide = world.getBlockAt(doubleChest.getRightSide().getLocation());
-
-                if (leftSide.getState() instanceof Chest leftChest
-                        && leftChest.getPersistentDataContainer().has(AwesomeChestShop.getKeys().shopIdKey)) {
-                    return false;
-                }
-
-                if (rightSide.getState() instanceof Chest rightChest
-                        && rightChest.getPersistentDataContainer().has(AwesomeChestShop.getKeys().shopIdKey)) {
-                    return false;
-                }
-            } else return !chest.getPersistentDataContainer().has(AwesomeChestShop.getKeys().shopIdKey);
-        }
-
-        return true;
     }
 
     private static final MiniMessage miniMessage = MiniMessage.miniMessage();

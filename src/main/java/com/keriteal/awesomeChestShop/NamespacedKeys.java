@@ -1,38 +1,23 @@
 package com.keriteal.awesomeChestShop;
 
+import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.UUID;
+
 public class NamespacedKeys {
-    /**
-     * 商店ID，存在告示牌，箱子，展示物品上
-     */
-    public final NamespacedKey shopIdKey = new NamespacedKey(JavaPlugin.getPlugin(AwesomeChestShop.class), "shop_id");
-
-    /**
-     * 创建者 UUID，存在告示牌上
-     */
-    public final NamespacedKey shopOwnerKey = new NamespacedKey(JavaPlugin.getPlugin(AwesomeChestShop.class), "shop_owner");
-
-    /**
-     * 商店出售的物品，存在告示牌上
-     */
-    public final NamespacedKey shopItemKey = new NamespacedKey(JavaPlugin.getPlugin(AwesomeChestShop.class), "shop_item");
-
-    /**
-     * 商店物品售价，存在告示牌上
-     */
-    public final NamespacedKey shopPriceKey = new NamespacedKey(JavaPlugin.getPlugin(AwesomeChestShop.class), "shop_price");
-
-    /**
-     * 商店是否为出售模式，存在告示牌上
-     */
-    public final NamespacedKey shopTypeKey = new NamespacedKey(JavaPlugin.getPlugin(AwesomeChestShop.class), "shop_sale");
-
-    /**
-     * 关联的告示牌的位置，存在箱子上
-     */
-    public final NamespacedKey signAttachedFace = new NamespacedKey(JavaPlugin.getPlugin(AwesomeChestShop.class), "sign_attached_face");
+    public static final PersistentDataAccessor<byte[], UUID> SHOP_ID = new PersistentDataAccessor<>("shop_id", DataTypes.UUID, null);
+    public static final PersistentDataAccessor<byte[], UUID> SHOP_OWNER_ID = new PersistentDataAccessor<>("shop_owner", DataTypes.UUID, null);
+    public static final PersistentDataAccessor<byte[], ItemStack> SHOP_ITEM = new PersistentDataAccessor<>("shop_item", DataTypes.ITEM_STACK, null);
+    public static final PersistentDataAccessor<byte[], OfflinePlayer> SHOP_OWNER = new PersistentDataAccessor<>("shop_owner", DataTypes.PLAYER, null);
+    public static final PersistentDataAccessor<Double, Double> SHOP_PRICE = new PersistentDataAccessor<>("shop_price", PersistentDataType.DOUBLE, Double.MAX_VALUE);
+    public static final PersistentDataAccessor<Integer, Integer> SHOP_TYPE = new PersistentDataAccessor<>("shop_type", PersistentDataType.INTEGER, ShopType.SALE_MODE.ordinal());
+    public static final PersistentDataAccessor<Integer, Integer> SIGN_ATTACHED_FACE = new PersistentDataAccessor<>("sign_attached_face", PersistentDataType.INTEGER, -1);
+    public static final PersistentDataAccessor<int[], Location[]> SHOP_LIST = new PersistentDataAccessor<>("shop_list", DataTypes.LOCATION_ARRAY, new Location[0]);
 
     public final NamespacedKey shopListKey = new NamespacedKey(JavaPlugin.getPlugin(AwesomeChestShop.class), "shop_list");
 }
