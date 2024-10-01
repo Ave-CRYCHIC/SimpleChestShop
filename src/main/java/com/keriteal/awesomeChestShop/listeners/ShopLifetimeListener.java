@@ -4,6 +4,7 @@ import com.keriteal.awesomeChestShop.ChestShop;
 import com.keriteal.awesomeChestShop.Messages;
 import com.keriteal.awesomeChestShop.ShopManager;
 import com.keriteal.awesomeChestShop.utils.BlockUtils;
+import com.keriteal.awesomeChestShop.utils.ShopUtils;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
@@ -49,6 +50,7 @@ public class ShopLifetimeListener implements Listener {
         ItemStack item = player.getInventory().getItemInMainHand();
         if (item.isEmpty()) return;
         Block clickedBlock = event.getClickedBlock();
+        if (ShopUtils.isShopBlock(clickedBlock)) return;
 
         RayTraceResult traceResult = player.rayTraceBlocks(10.0, FluidCollisionMode.NEVER);
         if (traceResult == null) {

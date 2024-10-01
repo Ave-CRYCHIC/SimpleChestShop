@@ -1,7 +1,7 @@
 package com.keriteal.awesomeChestShop;
 
 import com.keriteal.awesomeChestShop.commands.ProtectionCommand;
-import com.keriteal.awesomeChestShop.listeners.ProtectionListener;
+import com.keriteal.awesomeChestShop.listeners.ShopProtectionListener;
 import com.keriteal.awesomeChestShop.listeners.ShopLifetimeListener;
 import com.keriteal.awesomeChestShop.listeners.ShopUpdateListener;
 import net.milkbowl.vault.chat.Chat;
@@ -32,7 +32,7 @@ public final class AwesomeChestShop extends JavaPlugin {
         ShopManager shopManager = new ShopManager(this);
         setupEconomy();
         getServer().getPluginManager().registerEvents(new ShopLifetimeListener(this, shopManager), this);
-        getServer().getPluginManager().registerEvents(new ProtectionListener(this, shopManager), this);
+        getServer().getPluginManager().registerEvents(new ShopProtectionListener(this, shopManager), this);
         getServer().getPluginManager().registerEvents(new ShopUpdateListener(this, shopManager), this);
         getCommand("shop").setExecutor(new ProtectionCommand(this, shopManager));
     }

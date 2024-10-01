@@ -1,6 +1,11 @@
 package com.keriteal.awesomeChestShop;
 
+import com.comphenix.protocol.PacketType;
+import com.comphenix.protocol.ProtocolLibrary;
+import com.comphenix.protocol.ProtocolManager;
+import com.comphenix.protocol.events.PacketContainer;
 import com.keriteal.awesomeChestShop.utils.BlockUtils;
+import com.keriteal.awesomeChestShop.utils.EntityUtils;
 import com.keriteal.awesomeChestShop.utils.ItemUtils;
 import com.keriteal.awesomeChestShop.utils.ShopUtils;
 import net.kyori.adventure.text.Component;
@@ -23,11 +28,14 @@ import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Collections;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.keriteal.awesomeChestShop.Messages.*;
 
 public final class ChestShop {
+    private static final AtomicInteger shopEntityId = new AtomicInteger(Integer.MAX_VALUE);
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
     @NotNull
     private final Location chestBlockLocation;
@@ -44,6 +52,7 @@ public final class ChestShop {
     private double price;
     private boolean shopProtected = true;
     private boolean created;
+    private final int shopItemEntityId = shopEntityId.getAndDecrement();
 
     private ChestShop(@NotNull UUID shopUuid,
                       @NotNull Location chestBlockLocation,
@@ -103,7 +112,7 @@ public final class ChestShop {
         signSide.line(2, miniMessage.deserialize(priceTemplate, Formatter.number("price", price)));
 
         // Line 4: Amount
-        Component numberComponent;
+        final Component numberComponent;
         long amount = getStock();
         if (amount == 0) {
             numberComponent = Component.text(amount, NamedTextColor.RED);
@@ -139,7 +148,7 @@ public final class ChestShop {
         NamespacedKeys.SHOP_PRICE.setValueTo(signDataContainer, this.getPrice());
 
         // Save shop location to chunk
-        PersistentDataContainer chunkContainer = chestBlockLocation.getChunk().getPersistentDataContainer();
+        final PersistentDataContainer chunkContainer = chestBlockLocation.getChunk().getPersistentDataContainer();
         if (chunkContainer.has(AwesomeChestShop.getKeys().shopListKey)) {
             int[] shopLists = chunkContainer.getOrDefault(AwesomeChestShop.getKeys().shopListKey, PersistentDataType.INTEGER_ARRAY, new int[]{});
             int[] newShopList = ArrayUtils.addAll(shopLists, chestBlockLocation.getBlockX(), chestBlockLocation.getBlockY(), chestBlockLocation.getBlockZ());
@@ -150,6 +159,23 @@ public final class ChestShop {
         // update blocks
         sign.update();
         container.update();
+        updateShownItem();
+    }
+
+    public void updateShownItem() {
+        System.out.println("更新物品" + shopItemEntityId);
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            EntityUtils.spawnFakeItemAt(player, getChestBlockLocation().add(0.5, 1, 0.5), getItemStack(), shopItemEntityId);
+        }
+    }
+
+    public void deleteShownItem() {
+        final ProtocolManager manager = ProtocolLibrary.getProtocolManager();
+        final PacketContainer packetContainer = manager.createPacket(PacketType.Play.Server.ENTITY_DESTROY);
+        packetContainer.getIntLists().write(0, Collections.singletonList(shopItemEntityId));
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            manager.sendServerPacket(player, packetContainer);
+        }
     }
 
     public void delete() {
@@ -171,6 +197,8 @@ public final class ChestShop {
                     .append(Component.text(getChestBlockLocation().getBlockX() + ", " + getChestBlockLocation().getBlockY() + ", " + getChestBlockLocation().getBlockZ(), NamedTextColor.BLUE))
                     .append(DELETING_SHOP_RIGHT));
         }
+
+        deleteShownItem();
     }
 
     public boolean create(double price) {
@@ -207,7 +235,7 @@ public final class ChestShop {
     }
 
     public @NotNull Location getChestBlockLocation() {
-        return chestBlockLocation;
+        return chestBlockLocation.clone();
     }
 
     public @NotNull BlockFace getSignFace() {

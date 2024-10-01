@@ -1,19 +1,18 @@
 package com.keriteal.awesomeChestShop.utils;
 
-import com.keriteal.awesomeChestShop.*;
+import com.keriteal.awesomeChestShop.ChestShop;
+import com.keriteal.awesomeChestShop.Messages;
+import com.keriteal.awesomeChestShop.NamespacedKeys;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.World;
 import org.bukkit.block.*;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.DoubleChestInventory;
-import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.persistence.PersistentDataContainer;
-import org.bukkit.persistence.PersistentDataType;
 
 import javax.annotation.Nullable;
 import java.util.UUID;

@@ -1,11 +1,9 @@
 package com.keriteal.awesomeChestShop.listeners;
 
-import com.keriteal.awesomeChestShop.AwesomeChestShop;
 import com.keriteal.awesomeChestShop.ChestShop;
 import com.keriteal.awesomeChestShop.NamespacedKeys;
 import com.keriteal.awesomeChestShop.ShopManager;
 import com.keriteal.awesomeChestShop.utils.ShopUtils;
-import net.kyori.adventure.text.TextComponent;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.block.Container;
@@ -17,7 +15,6 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.slf4j.Logger;
 
