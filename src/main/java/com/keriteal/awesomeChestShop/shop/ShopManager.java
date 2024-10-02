@@ -10,15 +10,18 @@ import io.papermc.paper.threadedregions.scheduler.RegionScheduler;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -88,7 +91,8 @@ public class ShopManager {
         });
     }
 
-    public ChestShop getShop(UUID shopId) {
+    @Nullable
+    public ChestShop getShop(@NotNull UUID shopId) {
         return existingShops.get(shopId);
     }
 
@@ -113,6 +117,7 @@ public class ShopManager {
         logger.info("Shop {} at ({}, {}, {}) not loaded, loading from world...", shopId, block.getLocation().getBlockX(), block.getLocation().getBlockY(), block.getLocation().getBlockZ());
         ChestShop shop = ChestShop.ofBlock(block);
         if (shop != null) {
+            shop.updateWorld();
             existingShops.put(shopId, shop);
         }
 
@@ -137,43 +142,45 @@ public class ShopManager {
         }
     }
 
-    public boolean isTrading(Player player) {
+    public boolean isTrading(@NotNull Player player) {
         return playerOperations.containsKey(player.getUniqueId()) && playerOperations.get(player.getUniqueId()).getOperationType() == ShopOperationType.TRADING;
     }
 
-    public boolean isCreatingShop(Player player) {
+    public boolean isCreatingShop(@NotNull Player player) {
         return playerOperations.containsKey(player.getUniqueId()) && playerOperations.get(player.getUniqueId()).getOperationType() == ShopOperationType.CREATING;
     }
 
-    public boolean hasOperation(Player player) {
+    @Contract(pure = true)
+    public boolean hasOperation(@NotNull Player player) {
         return playerOperations.containsKey(player.getUniqueId());
     }
 
-    public void cancelCreation(Player player) {
+    public void cancelCreation(@NotNull Player player) {
         if (isCreatingShop(player)) playerOperations.remove(player.getUniqueId());
         if (player.isOnline()) {
             player.sendMessage(Component.text("商店创建操作已取消", NamedTextColor.GOLD));
         }
     }
 
-    public void cancelTrading(Player player) {
+    public void cancelTrading(@NotNull Player player) {
         if (isTrading(player)) playerOperations.remove(player.getUniqueId());
         if (player.isOnline()) {
-            player.sendMessage(Component.text("交易已取消", NamedTextColor.GOLD));
-        }
-    }
+            player.sendMessage(Component.text("交易结束", NamedTextColor.GOLD));
+        }    }
 
-    public void cancelOperation(Player player) {
+    public void cancelOperation(@NotNull Player player) {
         if (!hasOperation(player)) return;
         ShopOperation operation = playerOperations.get(player.getUniqueId());
         if (operation.getOperationType() == ShopOperationType.CREATING) {
             cancelCreation(player);
         } else if (operation.getOperationType() == ShopOperationType.TRADING) {
             cancelTrading(player);
+
         }
     }
 
-    public ShopOperation getOperation(Player player) {
+    @Contract(pure = true)
+    public ShopOperation getOperation(@NotNull Player player) {
         return playerOperations.get(player.getUniqueId());
     }
 
@@ -187,7 +194,9 @@ public class ShopManager {
         shop.setShopType(type);
     }
 
-    public List<ChestShop> getShopsInChunk(Chunk chunk) {
+    @Contract(pure = true)
+    @NotNull
+    public List<ChestShop> getShopsInChunk(@NotNull Chunk chunk) {
         List<ChestShop> shops = new LinkedList<>();
         for (ChestShop shop : existingShops.values()) {
             if (shop.getChestBlockLocation().getChunk().equals(chunk)) {
@@ -197,18 +206,20 @@ public class ShopManager {
         return shops;
     }
 
+    @Contract(pure = true)
+    @NotNull
     public List<ChestShop> getShops() {
         return existingShops.values().parallelStream().toList();
     }
 
-    public void deleteShop(UUID uuid) {
+    public void deleteShop(@NotNull UUID uuid) {
         if (!existingShops.containsKey(uuid)) return;
         ChestShop shop = existingShops.get(uuid);
         shop.delete();
         existingShops.remove(uuid);
     }
 
-    public void prepareTrade(Player player, UUID shopId) {
+    public void prepareTrade(@NotNull Player player, @NotNull UUID shopId) {
         ChestShop shop = existingShops.get(shopId);
         if (shop == null) {
             player.sendMessage(Component.text("商店不存在", NamedTextColor.RED));
@@ -219,10 +230,9 @@ public class ShopManager {
         playerOperations.put(player.getUniqueId(), new ShopTradingOperation(shop, player));
     }
 
-    public void doTrade(Player player, int amount) {
-        if (!hasOperation(player) || !isTrading(player)) {
+    public void doTrade(@NotNull final Player player, int amount) {
+        if (!isTrading(player)) {
             logger.warn("Player {} tried to trade without operation", player.getName());
-            playerOperations.remove(player.getUniqueId());
             return;
         }
 
@@ -230,13 +240,24 @@ public class ShopManager {
 
         Bukkit.getRegionScheduler().execute(plugin, tradingShop, () -> {
             logger.info("Doing trading runnable");
-
             ChestShop shop = loadShopAt(tradingShop);
+
             if (shop == null) {
                 logger.warn("Player {} tried to trade with a non-existing shop at {}, {}, {}", player.getName(), tradingShop.getBlockX(), tradingShop.getBlockY(), tradingShop.getBlockZ());
                 playerOperations.remove(player.getUniqueId());
                 return;
             }
+
+            OfflinePlayer owner = Bukkit.getOfflinePlayer(shop.getOwnerId());
+            OfflinePlayer trader = Bukkit.getOfflinePlayer(player.getUniqueId());
+            int maxTradeAmount;
+            if (shop.getShopType() == ShopType.BUY_MODE) {
+                maxTradeAmount = (int) (AwesomeChestShop.getEconomy().getBalance(owner) / shop.getPrice());
+            } else {
+                maxTradeAmount = (int) (AwesomeChestShop.getEconomy().getBalance(trader) / shop.getPrice());
+            }
+
+            int realTradeAmount = Math.min(amount, maxTradeAmount);
 
             if (!(shop.getChestBlockLocation().getBlock().getState() instanceof InventoryHolder inventoryHolder)) {
                 logger.warn("Player {} tried to trade with a non-inventory block", player.getName());
@@ -244,20 +265,21 @@ public class ShopManager {
                 return;
             }
 
-            if (shop.getStock() < amount) {
-                player.sendMessage(Component.text("商店库存不足", NamedTextColor.RED));
-                playerOperations.remove(player.getUniqueId());
-                return;
-            }
+//            if (shop.getStock() < amount) {
+//                player.sendMessage(Component.text("商店库存不足", NamedTextColor.RED));
+//                playerOperations.remove(player.getUniqueId());
+//                return;
+//            }
+            realTradeAmount = Math.min(realTradeAmount, shop.getStock());
 
             Inventory shopInventory = inventoryHolder.getInventory();
             Inventory playerInventory = player.getInventory();
 
             int successAmount = 0;
             if (shop.getShopType() == ShopType.SALE_MODE) {
-                successAmount = transferItem(shopInventory, playerInventory, shop.getShopUuid(), amount);
+                successAmount = transferItem(shopInventory, playerInventory, shop.getShopUuid(), realTradeAmount);
             } else if (shop.getShopType() == ShopType.BUY_MODE) {
-                successAmount = transferItem(playerInventory, shopInventory, shop.getShopUuid(), amount);
+                successAmount = transferItem(playerInventory, shopInventory, shop.getShopUuid(), realTradeAmount);
             }
 
             if (successAmount == 0) {
@@ -266,11 +288,20 @@ public class ShopManager {
                 return;
             }
 
-            AwesomeChestShop.getEconomy().withdrawPlayer(player, shop.getPrice() * successAmount);
-            AwesomeChestShop.getEconomy().depositPlayer(player, shop.getPrice() * successAmount);
+            if (shop.getShopType() == ShopType.BUY_MODE) {
+                AwesomeChestShop.getEconomy().withdrawPlayer(owner, shop.getPrice() * successAmount);
+                AwesomeChestShop.getEconomy().depositPlayer(trader, shop.getPrice() * successAmount);
+                player.sendMessage(miniMessage.deserialize("<green>交易成功，数量: <amount>, 获得<price></green>",
+                        shop.getTagResolver(successAmount),
+                        Formatter.number("amount", successAmount)));
+            } else {
+                AwesomeChestShop.getEconomy().withdrawPlayer(trader, shop.getPrice() * successAmount);
+                AwesomeChestShop.getEconomy().depositPlayer(owner, shop.getPrice() * successAmount);
+                player.sendMessage(miniMessage.deserialize("<green>交易成功，数量: <amount>, 花费<price></green>",
+                        shop.getTagResolver(successAmount),
+                        Formatter.number("amount", successAmount)));
+            }
             shop.updateWorld();
-            player.sendMessage(miniMessage.deserialize("<green>交易成功，花费<price></green>", shop.getTagResolver()));
-            playerOperations.remove(player.getUniqueId());
         });
     }
 
@@ -288,21 +319,23 @@ public class ShopManager {
         int remainedAmount = amount;
         List<ItemStack> tradingItems = new LinkedList<>();
         ChestShop shop = getShop(shopUuid);
+        if (shop == null) return 0;
 
         for (ItemStack shopItem : fromInventory.getContents()) {
             if (shopItem == null || !shopItem.isSimilar(shop.getItemStack())) continue;
 
-            if (shopItem.getAmount() <= remainedAmount) {
-                tradingItems.add(shopItem);
-                // Transfer full stack
-            } else {
-                // Transfer part of stack
-                remainedAmount -= shopItem.getAmount();
-                ItemStack transferItem = shopItem.clone();
-                transferItem.setAmount(remainedAmount);
-                shopItem.setAmount(shopItem.getAmount() - remainedAmount);
-                tradingItems.add(transferItem);
-            }
+            if (remainedAmount == 0) break;
+
+            int transferredAmount = Math.min(shopItem.getAmount(), remainedAmount);
+
+            ItemStack transferItem = shopItem.clone();
+
+            transferItem.setAmount(transferredAmount);
+            shopItem.setAmount(shopItem.getAmount() - transferredAmount);
+
+            logger.info("Transfer: {}", transferItem);
+            tradingItems.add(transferItem);
+            remainedAmount -= transferredAmount;
         }
 
         HashMap<Integer, ItemStack> overflow = toInventory.addItem(tradingItems.toArray(new ItemStack[0]));

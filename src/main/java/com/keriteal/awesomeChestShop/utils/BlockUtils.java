@@ -10,8 +10,8 @@ import org.bukkit.inventory.ItemStack;
 
 public class BlockUtils {
     public static InventorySpace countInventorySpace(Inventory inventory, ItemStack itemStack) {
-        long itemCount = 0;
-        long freeSpace = 0;
+        int itemCount = 0;
+        int freeSpace = 0;
         for (ItemStack item : inventory.getContents()) {
             if (item == null || item.isEmpty()) {
                 freeSpace += itemStack.getMaxStackSize();

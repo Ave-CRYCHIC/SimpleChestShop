@@ -277,7 +277,7 @@ public final class ChestShop implements InventoryHolder {
         return price;
     }
 
-    public long getStock() {
+    public int getStock() {
         Block containerBlock = chestBlockLocation.getBlock();
         if (!(containerBlock.getState() instanceof Container container)) return 0;
         InventorySpace space = BlockUtils.countInventorySpace(container.getInventory(), itemStack);
@@ -355,8 +355,12 @@ public final class ChestShop implements InventoryHolder {
     }
 
     public TagResolver getTagResolver() {
+        return getTagResolver(1);
+    }
+
+    public TagResolver getTagResolver(int amount) {
         return TagResolver.resolver(Placeholder.component("price", Component.text(AwesomeChestShop.getEconomy().currencyNamePlural(), TextColor.color(0xEE578C))
-                .appendSpace().append(Component.text(getPrice(), TextColor.color(0xF3C64B)))));
+                .appendSpace().append(Component.text(getPrice() * amount, TextColor.color(0xF3C64B)))));
     }
 
     @Nullable

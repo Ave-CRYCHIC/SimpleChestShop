@@ -8,6 +8,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.block.Block;
 import org.bukkit.block.Container;
 import org.bukkit.block.DoubleChest;
+import org.bukkit.block.Hopper;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.minecart.HopperMinecart;
 import org.bukkit.event.EventHandler;
@@ -70,7 +71,6 @@ public class ShopProtectionListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onItemTransfer(final InventoryMoveItemEvent event) {
-        logger.info("Item transfer event, source: {}, dest: {}", event.getSource().getHolder(), event.getDestination().getHolder());
         InventoryHolder sourceHolder = event.getSource().getHolder();
         InventoryHolder destHolder = event.getDestination().getHolder();
         Block shopBlock;
@@ -103,7 +103,8 @@ public class ShopProtectionListener implements Listener {
             event.setCancelled(true);
         } else if (anotherHolder instanceof HopperMinecart) {
             event.setCancelled(true);
-            return;
+        } else if (destHolder instanceof Hopper) {
+            event.setCancelled(true);
         }
     }
 

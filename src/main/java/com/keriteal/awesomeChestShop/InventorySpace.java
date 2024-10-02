@@ -1,4 +1,4 @@
 package com.keriteal.awesomeChestShop;
 
-public record InventorySpace(long amount, long space) {
+public record InventorySpace(int amount, int space) {
 }
