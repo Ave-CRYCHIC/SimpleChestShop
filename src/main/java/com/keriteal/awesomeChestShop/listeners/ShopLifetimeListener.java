@@ -1,8 +1,10 @@
 package com.keriteal.awesomeChestShop.listeners;
 
-import com.keriteal.awesomeChestShop.ChestShop;
 import com.keriteal.awesomeChestShop.Messages;
-import com.keriteal.awesomeChestShop.ShopManager;
+import com.keriteal.awesomeChestShop.shop.ShopManager;
+import com.keriteal.awesomeChestShop.shop.ShopOperationType;
+import com.keriteal.awesomeChestShop.shop.operations.ShopCreationOperation;
+import com.keriteal.awesomeChestShop.shop.operations.ShopOperation;
 import com.keriteal.awesomeChestShop.utils.BlockUtils;
 import com.keriteal.awesomeChestShop.utils.ShopUtils;
 import io.papermc.paper.event.player.AsyncChatEvent;
@@ -27,10 +29,7 @@ import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 import org.slf4j.Logger;
 
-import java.util.UUID;
-
 public class ShopLifetimeListener implements Listener {
-    private static final Component invalidPriceComponent = Component.text("价格输入不合法", NamedTextColor.RED);
 
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
     private final Logger logger;
@@ -71,27 +70,8 @@ public class ShopLifetimeListener implements Listener {
             logger.info(blockFace.name());
         }
 
-        shopManager.requestShop(new ChestShop(clickedBlock.getLocation(), blockFace, player.getUniqueId(), item));
+        shopManager.prepareCreate(player, new ShopCreationOperation(clickedBlock.getLocation(), player.getLocation(), item, blockFace));
         player.sendMessage(Messages.INPUT_PRICE);
-    }
-
-    @EventHandler
-    public void onCreateShop(AsyncChatEvent event) {
-        Player player = event.getPlayer();
-        if (!shopManager.hasPendingShop(player)) return;
-        event.setCancelled(true);
-        if (!(event.message() instanceof TextComponent textComponent)) {
-            player.sendMessage(invalidPriceComponent);
-            return;
-        }
-
-        double price = NumberUtils.toDouble(textComponent.content(), -1);
-        if (price == -1 || Double.isNaN(price)) {
-            player.sendMessage(invalidPriceComponent);
-            return;
-        }
-
-        shopManager.createShop(player, price);
     }
 
     private BlockFace getClosestFace(Location centerLocation, Vector hitPosition) {

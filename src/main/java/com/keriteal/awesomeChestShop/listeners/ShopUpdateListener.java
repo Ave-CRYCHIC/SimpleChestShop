@@ -1,19 +1,30 @@
 package com.keriteal.awesomeChestShop.listeners;
 
-import com.keriteal.awesomeChestShop.ChestShop;
-import com.keriteal.awesomeChestShop.NamespacedKeys;
-import com.keriteal.awesomeChestShop.ShopManager;
+import com.keriteal.awesomeChestShop.*;
+import com.keriteal.awesomeChestShop.shop.ChestShop;
+import com.keriteal.awesomeChestShop.shop.ShopManager;
+import com.keriteal.awesomeChestShop.utils.ItemUtils;
 import com.keriteal.awesomeChestShop.utils.ShopUtils;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.block.Block;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.block.*;
 import org.bukkit.block.Container;
-import org.bukkit.block.Sign;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.slf4j.Logger;
@@ -24,8 +35,9 @@ public class ShopUpdateListener implements Listener {
     private final ShopManager shopManager;
     private final JavaPlugin plugin;
     private final Logger logger;
+    private final MiniMessage miniMessage = MiniMessage.miniMessage();
 
-    public ShopUpdateListener(JavaPlugin plugin, ShopManager shopManager) {
+    public ShopUpdateListener(AwesomeChestShop plugin, ShopManager shopManager) {
         this.shopManager = shopManager;
         this.plugin = plugin;
         this.logger = plugin.getSLF4JLogger();
@@ -49,51 +61,21 @@ public class ShopUpdateListener implements Listener {
     }
 
     @EventHandler
-    public void onShopInteracted(PlayerInteractEvent event) {
-        Block clickedBlock = event.getClickedBlock();
-        if (clickedBlock == null || !(clickedBlock.getState() instanceof Sign sign)) return;
-        if (event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+    public void onChunkLoaded(ChunkLoadEvent event) {
+        for (BlockState state : event.getChunk().getTileEntities()) {
+            if (!(state instanceof Sign)) continue;
 
-        ChestShop shop = shopManager.getShopAt(clickedBlock);
-        if (shop == null) return;
-
-        Location location = clickedBlock.getLocation();
-        plugin.getSLF4JLogger().debug("Player {}[{}] interacting a shop at {}, {}, {}, owner: {}, shop id: {}",
-                event.getPlayer().getName(),
-                event.getPlayer().getUniqueId(),
-                location.getBlockX(), location.getBlockY(), location.getBlockZ(),
-                shop.getOwnerId(),
-                shop.getShopUuid());
-
-        if (!shop.getOwnerId().equals(event.getPlayer().getUniqueId())) {
-            handleShopping();
-            return;
+            ChestShop shop = shopManager.loadShopAt(state.getBlock());
+            if (shop != null) {
+                shop.updateShownItem();
+            }
         }
-
-        if (event.getPlayer().isSneaking()) {
-            handleManagement();
-            return;
-        }
-
-        logger.info("Changing shop type at {}, {}, {}", location.getBlockX(), location.getBlockY(), location.getBlockZ());
-        shop.setShopType(shop.getShopType().nextType());
     }
 
     @EventHandler
-    public void onShopChestExpanded(BlockPlaceEvent event) {
-        Block eventBlock = event.getBlockPlaced();
-        if (ShopUtils.isValidContainer(eventBlock)) return;
-
-        // TODO 当放置一个箱子时，检测是否会变成一个大箱子
-    }
-
-    private void handleShopping() {
-        // TODO 处理购物
-        logger.info("Shopping in shop");
-    }
-
-    private void handleManagement() {
-        // TODO 处理管理
-        logger.info("Managing shop");
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        for (ChestShop shop : shopManager.getShops()) {
+            shop.updateShownItem(event.getPlayer());
+        }
     }
 }

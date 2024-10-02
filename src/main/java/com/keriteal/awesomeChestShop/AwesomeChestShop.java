@@ -3,10 +3,13 @@ package com.keriteal.awesomeChestShop;
 import com.keriteal.awesomeChestShop.commands.ProtectionCommand;
 import com.keriteal.awesomeChestShop.listeners.ShopProtectionListener;
 import com.keriteal.awesomeChestShop.listeners.ShopLifetimeListener;
+import com.keriteal.awesomeChestShop.listeners.ShopOperationListener;
 import com.keriteal.awesomeChestShop.listeners.ShopUpdateListener;
+import com.keriteal.awesomeChestShop.shop.ShopManager;
 import net.milkbowl.vault.chat.Chat;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.slf4j.Logger;
@@ -34,6 +37,7 @@ public final class AwesomeChestShop extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new ShopLifetimeListener(this, shopManager), this);
         getServer().getPluginManager().registerEvents(new ShopProtectionListener(this, shopManager), this);
         getServer().getPluginManager().registerEvents(new ShopUpdateListener(this, shopManager), this);
+        getServer().getPluginManager().registerEvents(new ShopOperationListener(this, shopManager), this);
         getCommand("shop").setExecutor(new ProtectionCommand(this, shopManager));
     }
 

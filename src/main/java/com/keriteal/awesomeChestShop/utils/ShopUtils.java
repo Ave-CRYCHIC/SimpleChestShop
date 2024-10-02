@@ -1,6 +1,6 @@
 package com.keriteal.awesomeChestShop.utils;
 
-import com.keriteal.awesomeChestShop.ChestShop;
+import com.keriteal.awesomeChestShop.shop.ChestShop;
 import com.keriteal.awesomeChestShop.Messages;
 import com.keriteal.awesomeChestShop.NamespacedKeys;
 import net.kyori.adventure.text.Component;
@@ -10,6 +10,7 @@ import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.*;
+import org.bukkit.block.data.type.WallSign;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.DoubleChestInventory;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -82,7 +83,13 @@ public class ShopUtils {
         return NamespacedKeys.SHOP_ID.hasValue(state);
     }
 
-    public static boolean isShopBlock(Block testingBlock) {
+    public static boolean isShopSign(@Nullable Block targetBlock) {
+        if (targetBlock == null || !(targetBlock.getState() instanceof Sign sign)) return false;
+        return NamespacedKeys.SHOP_ID.hasValue(sign);
+    }
+
+    public static boolean isShopBlock(@Nullable Block testingBlock) {
+        if (testingBlock == null) return false;
         if (!(testingBlock.getState() instanceof TileState state)) {
             return false;
         }

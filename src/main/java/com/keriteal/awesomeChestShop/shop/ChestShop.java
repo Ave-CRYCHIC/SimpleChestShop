@@ -1,17 +1,24 @@
-package com.keriteal.awesomeChestShop;
+package com.keriteal.awesomeChestShop.shop;
 
 import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.ProtocolManager;
 import com.comphenix.protocol.events.PacketContainer;
+import com.keriteal.awesomeChestShop.AwesomeChestShop;
+import com.keriteal.awesomeChestShop.InventorySpace;
+import com.keriteal.awesomeChestShop.NamespacedKeys;
+import com.keriteal.awesomeChestShop.ShopType;
 import com.keriteal.awesomeChestShop.utils.BlockUtils;
 import com.keriteal.awesomeChestShop.utils.EntityUtils;
 import com.keriteal.awesomeChestShop.utils.ItemUtils;
 import com.keriteal.awesomeChestShop.utils.ShopUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.apache.commons.lang3.ArrayUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -22,6 +29,8 @@ import org.bukkit.block.data.Directional;
 import org.bukkit.block.sign.Side;
 import org.bukkit.block.sign.SignSide;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
@@ -29,14 +38,16 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.keriteal.awesomeChestShop.Messages.*;
 
-public final class ChestShop {
+public final class ChestShop implements InventoryHolder {
     private static final AtomicInteger shopEntityId = new AtomicInteger(Integer.MAX_VALUE);
-    private final MiniMessage miniMessage = MiniMessage.miniMessage();
+    private static final MiniMessage miniMessage = MiniMessage.miniMessage();
+
     @NotNull
     private final Location chestBlockLocation;
     @NotNull
@@ -93,12 +104,8 @@ public final class ChestShop {
         SignSide signSide = sign.getSide(Side.FRONT);
 
         // Line 1: Shop owner
-        Player owner = Bukkit.getServer().getPlayer(getOwnerId());
-        if (owner == null) {
-            signSide.line(0, Component.text("Unknown", getShopType().getTextColor()));
-        } else {
-            signSide.line(0, owner.displayName().color(getShopType().getTextColor()));
-        }
+        OfflinePlayer owner = Bukkit.getServer().getOfflinePlayer(getOwnerId());
+        signSide.line(0, Component.text(Optional.ofNullable(owner.getName()).orElse("Unknown"), getShopType().getTextColor()));
 
         // Line 2: Sold item
         if (getShopType() == ShopType.GOTCHA_MODE) {
@@ -163,10 +170,13 @@ public final class ChestShop {
     }
 
     public void updateShownItem() {
-        System.out.println("更新物品" + shopItemEntityId);
         for (Player player : Bukkit.getOnlinePlayers()) {
             EntityUtils.spawnFakeItemAt(player, getChestBlockLocation().add(0.5, 1, 0.5), getItemStack(), shopItemEntityId);
         }
+    }
+
+    public void updateShownItem(Player player) {
+        EntityUtils.spawnFakeItemAt(player, getChestBlockLocation().add(0.5, 1, 0.5), getItemStack(), shopItemEntityId);
     }
 
     public void deleteShownItem() {
@@ -178,7 +188,7 @@ public final class ChestShop {
         }
     }
 
-    public void delete() {
+    void delete() {
         OfflinePlayer owner = Bukkit.getOfflinePlayer(getOwnerId());
 
         Block containerBlock = getChestBlockLocation().getBlock();
@@ -201,7 +211,7 @@ public final class ChestShop {
         deleteShownItem();
     }
 
-    public boolean create(double price) {
+    boolean create(double price) {
         Player player = AwesomeChestShop.getPlugin().getServer().getPlayer(playerId);
         if (player == null) {
             return false;
@@ -344,6 +354,11 @@ public final class ChestShop {
         return new ChestShop(shopUuid, container.getLocation(), face, ownerId, shopType, item, price, true);
     }
 
+    public TagResolver getTagResolver() {
+        return TagResolver.resolver(Placeholder.component("price", Component.text(AwesomeChestShop.getEconomy().currencyNamePlural(), TextColor.color(0xEE578C))
+                .appendSpace().append(Component.text(getPrice(), TextColor.color(0xF3C64B)))));
+    }
+
     @Nullable
     public static ChestShop ofBlock(@Nullable Block block) {
         if (block == null) return null;
@@ -381,5 +396,17 @@ public final class ChestShop {
                 ", shopProtected=" + shopProtected +
                 ", created=" + created +
                 '}';
+    }
+
+    @Override
+    public @NotNull Inventory getInventory() {
+        final Inventory inventory;
+        if (getChestBlockLocation().getBlock().getState() instanceof InventoryHolder originalInventoryHolder) {
+            inventory = Bukkit.createInventory(this, originalInventoryHolder.getInventory().getSize(), Component.text("箱子预览"));
+            inventory.setContents(originalInventoryHolder.getInventory().getContents());
+        } else {
+            inventory = Bukkit.createInventory(this, 27, Component.text("箱子预览"));
+        }
+        return inventory;
     }
 }

@@ -1,6 +1,8 @@
 package com.keriteal.awesomeChestShop.commands;
 
 import com.keriteal.awesomeChestShop.*;
+import com.keriteal.awesomeChestShop.shop.ChestShop;
+import com.keriteal.awesomeChestShop.shop.ShopManager;
 import com.keriteal.awesomeChestShop.utils.ItemUtils;
 import com.keriteal.awesomeChestShop.utils.ShopUtils;
 import net.kyori.adventure.text.Component;
@@ -16,15 +18,14 @@ import org.bukkit.block.Block;
 import org.bukkit.command.*;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.RayTraceResult;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 public class ProtectionCommand implements CommandExecutor, TabCompleter {
     private final ShopManager shopManager;
@@ -91,6 +92,16 @@ public class ProtectionCommand implements CommandExecutor, TabCompleter {
             }
             case "list": {
 
+            }
+            case "view": {
+                if (args.length == 1) {
+                    handleView(sender, null);
+                    return true;
+                }
+                if (args.length == 4) {
+                    handleView(sender, new Location(entityLocation.getWorld(), Integer.parseInt(args[1]), Integer.parseInt(args[2]), Integer.parseInt(args[3])));
+                    return true;
+                }
             }
             case "info": {
                 if (args.length == 1) {
@@ -163,7 +174,7 @@ public class ProtectionCommand implements CommandExecutor, TabCompleter {
     }
 
     public void handleModifyType(CommandSender commandSender, ShopType shopType, Block block) {
-        ChestShop shop = shopManager.getShopAt(block.getLocation());
+        ChestShop shop = shopManager.loadShopAt(block.getLocation());
         if (shop == null) {
             commandSender.sendMessage(Messages.MESSAGE_NO_SHOP);
             return;
@@ -206,6 +217,31 @@ public class ProtectionCommand implements CommandExecutor, TabCompleter {
         return resultList;
     }
 
+    private void handleView(CommandSender sender, Location shopLocation) {
+        final ChestShop shop;
+        if (!(sender instanceof Player player)) return;
+        if (shopLocation == null) {
+            Block block = player.getTargetBlockExact(10);
+            if (block == null) {
+                sender.sendMessage(Messages.MESSAGE_NO_TARGETING_BLOCK);
+                return;
+            }
+            shop = shopManager.loadShopAt(block);
+        } else {
+            shop = shopManager.loadShopAt(shopLocation);
+        }
+
+        if (shop == null) {
+            sender.sendMessage(Messages.MESSAGE_NO_SHOP);
+            return;
+        }
+
+        if (shop.getChestBlockLocation().getBlock().getState() instanceof InventoryHolder inventoryHolder) {
+            logger.info("Opening inventory");
+            player.openInventory(shop.getInventory());
+        }
+    }
+
     private void handleInfo(CommandSender sender) {
         if (!(sender instanceof LivingEntity entity)) return;
 
@@ -215,7 +251,7 @@ public class ProtectionCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        ChestShop shop = shopManager.getShopAt(block);
+        ChestShop shop = shopManager.loadShopAt(block);
         if (shop == null) {
             sender.sendMessage(Messages.MESSAGE_NO_SHOP);
             return;
@@ -259,6 +295,7 @@ public class ProtectionCommand implements CommandExecutor, TabCompleter {
                 .append(message)
                 .appendNewline()
                 .append(Messages.MESSAGE_SEPARATOR.color(NamedTextColor.BLUE)));
+        shop.updateWorld();
     }
 
     private void handleProtectionQuery(CommandSender sender, int x, int y, int z) {
