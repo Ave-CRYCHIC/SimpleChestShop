@@ -104,11 +104,9 @@ public class ShopUtils {
                 return false;
             }
 
-            System.out.println("isShopBlock: double chest");
             Chest leftSide = (Chest) doubleChest.getLeftSide();
             Chest rightSide = (Chest) doubleChest.getRightSide();
             if (leftSide == null || rightSide == null) {
-                System.out.println("isShopBlock: left or right side is null");
                 return false;
             }
 
