@@ -2,17 +2,10 @@ package com.keriteal.awesomeChestShop.listeners;
 
 import com.keriteal.awesomeChestShop.Messages;
 import com.keriteal.awesomeChestShop.shop.ShopManager;
-import com.keriteal.awesomeChestShop.shop.ShopOperationType;
-import com.keriteal.awesomeChestShop.shop.operations.ShopCreationOperation;
-import com.keriteal.awesomeChestShop.shop.operations.ShopOperation;
 import com.keriteal.awesomeChestShop.utils.BlockUtils;
 import com.keriteal.awesomeChestShop.utils.ShopUtils;
-import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.TextComponent;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import org.apache.commons.lang3.math.NumberUtils;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -45,7 +38,7 @@ public class ShopLifetimeListener implements Listener {
         if (event.getClickedBlock() == null || event.getClickedBlock().getType() != Material.CHEST) return;
         if (event.getAction() != Action.LEFT_CLICK_BLOCK) return;
         Player player = event.getPlayer();
-        if (player.isSneaking()) return;
+        if (!player.isSneaking()) return;
         ItemStack item = player.getInventory().getItemInMainHand();
         if (item.isEmpty()) return;
         Block clickedBlock = event.getClickedBlock();
@@ -70,8 +63,7 @@ public class ShopLifetimeListener implements Listener {
             logger.info(blockFace.name());
         }
 
-        shopManager.prepareCreate(player, new ShopCreationOperation(clickedBlock.getLocation(), player.getLocation(), item, blockFace));
-        player.sendMessage(Messages.INPUT_PRICE);
+        shopManager.prepareCreate(player, clickedBlock.getLocation(), item, blockFace);
     }
 
     private BlockFace getClosestFace(Location centerLocation, Vector hitPosition) {

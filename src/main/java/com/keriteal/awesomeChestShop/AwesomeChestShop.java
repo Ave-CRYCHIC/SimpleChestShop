@@ -9,7 +9,6 @@ import com.keriteal.awesomeChestShop.shop.ShopManager;
 import net.milkbowl.vault.chat.Chat;
 import net.milkbowl.vault.economy.Economy;
 import net.milkbowl.vault.permission.Permission;
-import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.slf4j.Logger;
@@ -25,6 +24,12 @@ public final class AwesomeChestShop extends JavaPlugin {
     public static JavaPlugin Instance = null;
 
     private static Logger logger;
+    private final ShopManager shopManager = new ShopManager(this);
+    private final ShopLifetimeListener shopLifetimeListener = new ShopLifetimeListener(this, shopManager);
+    private final ShopProtectionListener shopProtectionListener = new ShopProtectionListener(this, shopManager);
+    private final ShopUpdateListener shopUpdateListener = new ShopUpdateListener(this, shopManager);
+    private final ShopOperationListener shopOperationListener = new ShopOperationListener(this, shopManager);
+    private final ProtectionCommand protectionCommand = new ProtectionCommand(this, shopManager);
 
     @Override
     public void onEnable() {
@@ -32,13 +37,12 @@ public final class AwesomeChestShop extends JavaPlugin {
         logger = this.getSLF4JLogger();
         Keys = new NamespacedKeys();
         Instance = this;
-        ShopManager shopManager = new ShopManager(this);
         setupEconomy();
-        getServer().getPluginManager().registerEvents(new ShopLifetimeListener(this, shopManager), this);
-        getServer().getPluginManager().registerEvents(new ShopProtectionListener(this, shopManager), this);
-        getServer().getPluginManager().registerEvents(new ShopUpdateListener(this, shopManager), this);
-        getServer().getPluginManager().registerEvents(new ShopOperationListener(this, shopManager), this);
-        getCommand("shop").setExecutor(new ProtectionCommand(this, shopManager));
+        getServer().getPluginManager().registerEvents(shopLifetimeListener, this);
+        getServer().getPluginManager().registerEvents(shopProtectionListener, this);
+        getServer().getPluginManager().registerEvents(shopUpdateListener, this);
+        getServer().getPluginManager().registerEvents(shopOperationListener, this);
+        getCommand("shop").setExecutor(protectionCommand);
     }
 
     @Override

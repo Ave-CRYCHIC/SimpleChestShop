@@ -176,7 +176,7 @@ public class ProtectionCommand implements CommandExecutor, TabCompleter {
     public void handleModifyType(CommandSender commandSender, ShopType shopType, Block block) {
         ChestShop shop = shopManager.loadShopAt(block.getLocation());
         if (shop == null) {
-            commandSender.sendMessage(Messages.MESSAGE_NO_SHOP);
+            commandSender.sendMessage(Messages.MISSING_SHOP);
             return;
         }
 
@@ -232,7 +232,7 @@ public class ProtectionCommand implements CommandExecutor, TabCompleter {
         }
 
         if (shop == null) {
-            sender.sendMessage(Messages.MESSAGE_NO_SHOP);
+            sender.sendMessage(Messages.MISSING_SHOP);
             return;
         }
 
@@ -253,7 +253,7 @@ public class ProtectionCommand implements CommandExecutor, TabCompleter {
 
         ChestShop shop = shopManager.loadShopAt(block);
         if (shop == null) {
-            sender.sendMessage(Messages.MESSAGE_NO_SHOP);
+            sender.sendMessage(Messages.MISSING_SHOP);
             return;
         }
 

@@ -4,15 +4,14 @@ import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.ProtocolLibrary;
 import com.comphenix.protocol.ProtocolManager;
 import com.comphenix.protocol.events.PacketContainer;
-import com.keriteal.awesomeChestShop.AwesomeChestShop;
-import com.keriteal.awesomeChestShop.InventorySpace;
-import com.keriteal.awesomeChestShop.NamespacedKeys;
-import com.keriteal.awesomeChestShop.ShopType;
+import com.keriteal.awesomeChestShop.*;
 import com.keriteal.awesomeChestShop.utils.BlockUtils;
 import com.keriteal.awesomeChestShop.utils.EntityUtils;
 import com.keriteal.awesomeChestShop.utils.ItemUtils;
 import com.keriteal.awesomeChestShop.utils.ShopUtils;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -37,16 +36,23 @@ import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static com.keriteal.awesomeChestShop.Messages.*;
-
 public final class ChestShop implements InventoryHolder {
     private static final AtomicInteger shopEntityId = new AtomicInteger(Integer.MAX_VALUE);
     private static final MiniMessage miniMessage = MiniMessage.miniMessage();
+    private static final ItemStack GOTCHA_ITEM;
+
+    static {
+        GOTCHA_ITEM = ItemUtils.createGotchaItem();
+    }
 
     @NotNull
     private final Location chestBlockLocation;
@@ -108,11 +114,7 @@ public final class ChestShop implements InventoryHolder {
         signSide.line(0, Component.text(Optional.ofNullable(owner.getName()).orElse("Unknown"), getShopType().getTextColor()));
 
         // Line 2: Sold item
-        if (getShopType() == ShopType.GOTCHA_MODE) {
-            signSide.line(1, Component.text("一番くじ", NamedTextColor.WHITE));
-        } else {
-            signSide.line(1, ItemUtils.getItemName(itemStack));
-        }
+        signSide.line(1, ItemUtils.getItemName(getItemStack()));
 
         // Line 3: Price
         String priceTemplate = "<color:#EE578C>" + AwesomeChestShop.getEconomy().currencyNamePlural() + " </color><color:#F3C64B><price:'#.0'></color>";
@@ -128,15 +130,8 @@ public final class ChestShop implements InventoryHolder {
         }
 
         switch (getShopType()) {
-            case SALE_MODE -> {
-                signSide.line(3, TEMPLATE_AMOUNT_STOCK.append(numberComponent));
-            }
-            case BUY_MODE -> {
-                signSide.line(3, TEMPLATE_AMOUNT_FREE_SPACE.append(numberComponent));
-            }
-            case GOTCHA_MODE -> {
-                signSide.line(3, Component.empty());
-            }
+            case SALE_MODE, GOTCHA_MODE -> signSide.line(3, Messages.TEMPLATE_AMOUNT_STOCK.append(numberComponent));
+            case BUY_MODE -> signSide.line(3, Messages.TEMPLATE_AMOUNT_FREE_SPACE.append(numberComponent));
         }
 
         // Prepare to save data
@@ -166,17 +161,17 @@ public final class ChestShop implements InventoryHolder {
         // update blocks
         sign.update();
         container.update();
-        updateShownItem();
+        updateTopPreviewItem();
     }
 
-    public void updateShownItem() {
+    public void updateTopPreviewItem() {
         for (Player player : Bukkit.getOnlinePlayers()) {
-            EntityUtils.spawnFakeItemAt(player, getChestBlockLocation().add(0.5, 1, 0.5), getItemStack(), shopItemEntityId);
+            EntityUtils.spawnFakeItemAt(player, getChestBlockLocation().add(0.5, 1, 0.5), getTopPreviewItem(), shopItemEntityId);
         }
     }
 
-    public void updateShownItem(Player player) {
-        EntityUtils.spawnFakeItemAt(player, getChestBlockLocation().add(0.5, 1, 0.5), getItemStack(), shopItemEntityId);
+    public void updateTopPreviewItem(Player player) {
+        EntityUtils.spawnFakeItemAt(player, getChestBlockLocation().add(0.5, 1, 0.5), getTopPreviewItem(), shopItemEntityId);
     }
 
     public void deleteShownItem() {
@@ -203,9 +198,9 @@ public final class ChestShop implements InventoryHolder {
         }
 
         if (owner instanceof Player player) {
-            player.sendMessage(DELETING_SHOP_LEFT
+            player.sendMessage(Messages.DELETING_SHOP_LEFT
                     .append(Component.text(getChestBlockLocation().getBlockX() + ", " + getChestBlockLocation().getBlockY() + ", " + getChestBlockLocation().getBlockZ(), NamedTextColor.BLUE))
-                    .append(DELETING_SHOP_RIGHT));
+                    .append(Messages.DELETING_SHOP_RIGHT));
         }
 
         deleteShownItem();
@@ -220,21 +215,21 @@ public final class ChestShop implements InventoryHolder {
         // Check container
         Block containerBlock = getChestBlockLocation().getBlock();
         if (!ShopUtils.isValidContainer(containerBlock)) {
-            player.sendMessage(MESSAGE_NOT_CHEST_PART_LOCATION
+            player.sendMessage(Messages.MESSAGE_NOT_CHEST_PART_LOCATION
                     .hoverEvent(Component.text(getChestBlockLocation().getBlockX() + ", " + getChestBlockLocation().getBlockY() + ", " + getChestBlockLocation().getBlockZ()))
-                    .append(MESSAGE_NOT_CONTAINER));
+                    .append(Messages.MESSAGE_NOT_CONTAINER));
             return false;
         }
         // Already has a shop
         if (ShopUtils.getShopIdAt(getChestBlockLocation()) != null) {
-            player.sendMessage(MESSAGE_SHOP_EXISTS);
+            player.sendMessage(Messages.MESSAGE_SHOP_EXISTS);
             return false;
         }
 
         // Validate has space to generate a sign
         Block targetSignBlock = containerBlock.getRelative(signFace);
         if (!targetSignBlock.isEmpty() && !targetSignBlock.isLiquid()) {
-            player.sendMessage(MESSAGE_SIGN_NO_SPACE);
+            player.sendMessage(Messages.MESSAGE_SIGN_NO_SPACE);
             return false;
         }
 
@@ -257,11 +252,15 @@ public final class ChestShop implements InventoryHolder {
     }
 
     public void setItemStack(@NotNull ItemStack itemStack) {
-        this.itemStack = itemStack;
+        this.itemStack = itemStack.clone();
     }
 
     public @NotNull ItemStack getItemStack() {
-        return itemStack;
+        return itemStack.clone();
+    }
+
+    public @NotNull ItemStack getTopPreviewItem() {
+        return this.getShopType() == ShopType.GOTCHA_MODE ? GOTCHA_ITEM : this.getItemStack();
     }
 
     public @NotNull UUID getShopUuid() {
@@ -280,7 +279,12 @@ public final class ChestShop implements InventoryHolder {
     public int getStock() {
         Block containerBlock = chestBlockLocation.getBlock();
         if (!(containerBlock.getState() instanceof Container container)) return 0;
-        InventorySpace space = BlockUtils.countInventorySpace(container.getInventory(), itemStack);
+
+        if (getShopType() == ShopType.GOTCHA_MODE) {
+            return Math.toIntExact(Arrays.stream(container.getInventory().getContents()).filter(ItemUtils::isNotEmpty).count());
+        }
+
+        InventorySpace space = BlockUtils.countInventorySpace(container.getInventory(), getItemStack());
         return getShopType() == ShopType.BUY_MODE ? space.space() : space.amount();
     }
 
@@ -355,7 +359,49 @@ public final class ChestShop implements InventoryHolder {
     }
 
     public TagResolver getTagResolver() {
-        return getTagResolver(1);
+        TagResolver locationResolver = TagResolver.resolver(
+                Formatter.number("x", getChestBlockLocation().getBlockX()),
+                Formatter.number("y", getChestBlockLocation().getBlockY()),
+                Formatter.number("z", getChestBlockLocation().getBlockZ())
+        );
+
+        TagResolver itemPreviewResolver;
+        if (getShopType() == ShopType.GOTCHA_MODE) {
+            itemPreviewResolver = Placeholder.styling("item_preview",
+                    HoverEvent.showText(Component.text("点击预览奖池")),
+                    ClickEvent.runCommand(String.format("/shop view %d %d %d", chestBlockLocation.getBlockX(), chestBlockLocation.getBlockY(), chestBlockLocation.getBlockZ())));
+        } else {
+            itemPreviewResolver = Placeholder.styling("item_preview", getItemStack().asHoverEvent());
+        }
+
+        OfflinePlayer owner = Bukkit.getOfflinePlayer(getOwnerId());
+        TagResolver ownerResolver;
+        if (owner.isOnline()) {
+            ownerResolver = Placeholder.component("owner", Component.text(owner.getName())
+                    .hoverEvent(HoverEvent.showText(miniMessage.deserialize("<green>点击私聊</green>")))
+                    .clickEvent(ClickEvent.suggestCommand("/tell " + owner.getName() + " ")));
+        } else {
+            ownerResolver = Placeholder.component("owner", Component.text(owner.getName())
+                    .hoverEvent(HoverEvent.showText(miniMessage.deserialize("<green>上次在线：</green><last_online>",
+                            Formatter.date("last_online", LocalDateTime.ofInstant(Instant.ofEpochMilli(owner.getLastSeen()), ZoneId.of("Asia/Shanghai")))
+                    ))));
+        }
+        TagResolver priceRawResolver = Formatter.number("price_raw", getPrice());
+        TagResolver currencyRawResolver = Placeholder.component("currency_raw", Component.text(AwesomeChestShop.getEconomy().currencyNamePlural()));
+
+        return TagResolver.resolver(
+                locationResolver,
+                itemPreviewResolver,
+                ownerResolver,
+                priceRawResolver,
+                currencyRawResolver,
+                Formatter.booleanChoice("is_buy_mode", getShopType() == ShopType.BUY_MODE),
+                Formatter.number("stock", getStock()),
+                Placeholder.component("currency", miniMessage.deserialize("<#EE578C><currency_raw></#EE578C>", currencyRawResolver)),
+                Placeholder.component("price", miniMessage.deserialize("<#F3C64B><price_raw></#F3C64B>", priceRawResolver)),
+                Placeholder.component("chest_location", miniMessage.deserialize("<hover:show_text:点击复制><aqua><x>, <y>, <z></aqua></hover>", locationResolver)),
+                Placeholder.component("shop_mode", getShopType().getColoredName())
+        );
     }
 
     public TagResolver getTagResolver(int amount) {
@@ -406,10 +452,10 @@ public final class ChestShop implements InventoryHolder {
     public @NotNull Inventory getInventory() {
         final Inventory inventory;
         if (getChestBlockLocation().getBlock().getState() instanceof InventoryHolder originalInventoryHolder) {
-            inventory = Bukkit.createInventory(this, originalInventoryHolder.getInventory().getSize(), Component.text("箱子预览"));
+            inventory = Bukkit.createInventory(this, originalInventoryHolder.getInventory().getSize(), Messages.SHOP_PREVIEW);
             inventory.setContents(originalInventoryHolder.getInventory().getContents());
         } else {
-            inventory = Bukkit.createInventory(this, 27, Component.text("箱子预览"));
+            inventory = Bukkit.createInventory(this, 27, Component.text("商店预览"));
         }
         return inventory;
     }

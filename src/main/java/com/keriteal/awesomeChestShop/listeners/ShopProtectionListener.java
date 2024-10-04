@@ -58,7 +58,6 @@ public class ShopProtectionListener implements Listener {
         if (!event.getAction().equals(InventoryAction.MOVE_TO_OTHER_INVENTORY)) {
             if (clickedInventory == null) return;
 
-            logger.info("Item click event, holder: {}", clickedInventory.getHolder());
             if (!(clickedInventory.getHolder() instanceof ChestShop)) return;
 
             event.setCancelled(true);

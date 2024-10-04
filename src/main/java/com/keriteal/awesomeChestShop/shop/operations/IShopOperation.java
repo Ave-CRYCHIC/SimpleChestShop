@@ -3,10 +3,8 @@ package com.keriteal.awesomeChestShop.shop.operations;
 import com.keriteal.awesomeChestShop.shop.ShopOperationType;
 import org.bukkit.Location;
 
-public interface ShopOperation {
+public interface IShopOperation {
     Location getShopLocation();
-
-    Location getPlayerLocation();
 
     ShopOperationType getOperationType();
 }

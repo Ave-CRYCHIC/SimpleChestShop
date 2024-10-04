@@ -28,7 +28,7 @@ public class EntityUtils {
 
     private static final ProtocolManager manager = ProtocolLibrary.getProtocolManager();
 
-    public static void spawnFakeItemAt(@NotNull Player player, @NotNull Location location, @NotNull ItemStack itemStack, int shopEntityId) {
+    public static void spawnFakeItemAt(@NotNull Player player, @NotNull Location location, final @NotNull ItemStack itemStack, int shopEntityId) {
         final ItemStack shownItemStack = itemStack.clone();
         shownItemStack.setAmount(1);
 

@@ -1,22 +1,14 @@
 package com.keriteal.awesomeChestShop.listeners;
 
-import com.keriteal.awesomeChestShop.AwesomeChestShop;
 import com.keriteal.awesomeChestShop.Messages;
 import com.keriteal.awesomeChestShop.ShopType;
 import com.keriteal.awesomeChestShop.shop.ChestShop;
 import com.keriteal.awesomeChestShop.shop.ShopManager;
-import com.keriteal.awesomeChestShop.shop.ShopOperationType;
-import com.keriteal.awesomeChestShop.shop.operations.ShopOperation;
-import com.keriteal.awesomeChestShop.utils.ItemUtils;
-import io.papermc.paper.event.player.AsyncChatEvent;
+import com.keriteal.awesomeChestShop.shop.operations.AbstractShopOperation;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
-import org.apache.commons.lang3.math.NumberUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
@@ -26,9 +18,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
 import java.util.UUID;
@@ -46,12 +39,9 @@ public class ShopOperationListener implements Listener {
     }
 
     @EventHandler
-    public void onPlayerCancelOperation(PlayerMoveEvent event) {
-        if (!shopManager.hasOperation(event.getPlayer())) return;
-
-        ShopOperation operation = shopManager.getOperation(event.getPlayer());
-        if (operation.getPlayerLocation().distance(event.getTo()) > 2) {
-            shopManager.cancelOperation(event.getPlayer());
+    public void onPlayerCancelOperation(InventoryCloseEvent event) {
+        if (event.getView().getTopInventory().getHolder() instanceof AbstractShopOperation<?> operation) {
+            operation.onClose();
         }
     }
 
@@ -64,24 +54,20 @@ public class ShopOperationListener implements Listener {
         ChestShop shop = shopManager.loadShopAt(clickedBlock);
         if (shop == null) return;
 
-        Player player = event.getPlayer();
-        Location location = clickedBlock.getLocation();
-        plugin.getSLF4JLogger().debug("Player {}[{}] interacting a shop at {}, {}, {}, owner: {}, shop id: {}",
-                event.getPlayer().getName(),
-                event.getPlayer().getUniqueId(),
-                location.getBlockX(), location.getBlockY(), location.getBlockZ(),
-                shop.getOwnerId(),
-                shop.getShopUuid());
+        final Player player = event.getPlayer();
+        final Location location = clickedBlock.getLocation();
 
         if (!shop.getOwnerId().equals(player.getUniqueId())) {
-            logger.info("Operation: Trade");
-            sendTradeMessage(player, shop.getShopUuid());
-            shopManager.prepareTrade(player, shop.getShopUuid());
+            if (player.isSneaking()) {
+                shopManager.prepareTrade(player, shop.getShopUuid());
+                event.setCancelled(true);
+            } else {
+                sendTradeMessage(player, shop.getShopUuid());
+            }
             return;
         }
 
         if (event.getPlayer().isSneaking()) {
-            logger.info("Operation: Manage");
             sendManagementMessage(event.getPlayer(), shop.getShopUuid());
             return;
         }
@@ -92,91 +78,44 @@ public class ShopOperationListener implements Listener {
 
     private void sendManagementMessage(Player player, UUID shopId) {
         ChestShop shop = shopManager.getShop(shopId);
-        Component message = Messages.MESSAGE_SEPARATOR_MANAGE;
+        if (shop == null) {
+            player.sendMessage(Messages.MISSING_SHOP);
+            return;
+        }
+        player.sendMessage(miniMessage.deserialize(
+                "<#e3a7bc><currency_raw></#e3a7bc><#edeed8>======== <#e3a7bc><b>管理</b></#e3a7bc> ========</#edeed8><#e3a7bc><currency_raw></#e3a7bc><br>" +
+                        "<#95d064>店主：</#95d064><#ca7534><owner></#ca7534><br>" +
+                        "<#95d064>类型：</#95d064><shop_mode><br>" +
+                        "<#95d064>物品：</#95d064><item_preview><#8348bf>[预览]</#8348bf></item_preview><br>" +
+                        "<#95d064>单价：</#95d064><currency><price><br>" +
+                        "<#95d064>库存：</#95d064><stock><br>" +
+                        "<#95d064>位置：</#95d064><#b59f7b><chest_location></#b59f7b><br>" +
+                        "<#e3a7bc><currency_raw></#e3a7bc><#edeed8>=====================</#edeed8><#e3a7bc><currency_raw></#e3a7bc>",
+                shop.getTagResolver()));
+    }
+
+    private Component buildChangeModeText(@NotNull Player player, @NotNull ChestShop shop, @NotNull ShopType shopType) {
+        return shopType.getColoredName()
+                .hoverEvent(Component.text("点击切换商店类型为", NamedTextColor.WHITE).append(shopType.getColoredName()))
+                .clickEvent(ClickEvent.runCommand(String.format("/shop modify type %s %d %d %d", shopType.getCommandName(), shop.getChestBlockLocation().getBlockX(), shop.getChestBlockLocation().getBlockY(), shop.getChestBlockLocation().getBlockZ())));
     }
 
     private void sendTradeMessage(Player player, UUID shopId) {
         ChestShop shop = shopManager.getShop(shopId);
-        OfflinePlayer owner = Bukkit.getOfflinePlayer(shop.getOwnerId());
-        Component message = Messages.MESSAGE_SEPARATOR_SHOP;
-        Component messageOwner = Messages.SHOP_TAG_OWNER
-                .append(Component.text(owner.getName(), NamedTextColor.GOLD)
-                        .hoverEvent(HoverEvent.showText(Messages.HOVER_PRIVATE_CHAT))
-                        .clickEvent(ClickEvent.suggestCommand("/tell " + owner.getName() + " ")));
-        Location chestLocation = shop.getChestBlockLocation();
-        Component messageLocation = Messages.SHOP_TAG_LOCATION
-                .append(miniMessage.deserialize("<x>, <y>, <z>",
-                                Formatter.number("x", chestLocation.getBlockX()),
-                                Formatter.number("y", chestLocation.getBlockY()),
-                                Formatter.number("z", chestLocation.getBlockZ()))
-                        .color(NamedTextColor.AQUA)
-                        .hoverEvent(HoverEvent.showText(Messages.HOVER_COPY))
-                        .clickEvent(ClickEvent.copyToClipboard(chestLocation.getBlockX() + " " + chestLocation.getBlockY() + " " + chestLocation.getBlockZ())));
-        Component messageMode = Messages.SHOP_TAG_MODE
-                .append(shop.getShopType().getColoredName());
-        Component messageItem = Messages.SHOP_TAG_ITEM
-                .append(ItemUtils.getItemName(shop.getItemStack()))
-                .appendSpace()
-                .append(Messages.SHOP_TAG_ITEM_PREVIEW.hoverEvent(shop.getItemStack()));
-        Component messagePrice = Messages.SHOP_TAG_PRICE
-                .append(Component.text(AwesomeChestShop.getEconomy().currencyNamePlural(), Messages.CURRENCY_SIGN_COLOR))
-                .appendSpace()
-                .append(Component.text(shop.getPrice(), NamedTextColor.GOLD));
-        Component messageStock;
-        if (shop.getShopType() == ShopType.BUY_MODE) {
-            messageStock = Messages.SHOP_TAG_FREE_SPACE.append(Component.text(shop.getStock(), NamedTextColor.GOLD));
-        } else {
-            messageStock = Messages.SHOP_TAG_STOCK.append(Component.text(shop.getStock(), NamedTextColor.GOLD));
-        }
-
-        player.sendMessage(message
-                .appendNewline().append(messageOwner)
-                .appendNewline().append(messageMode)
-                .appendNewline().append(messageItem)
-                .appendNewline().append(messagePrice)
-                .appendNewline().append(messageStock)
-                .appendNewline().append(messageLocation)
-                .appendNewline().append(Messages.MESSAGE_SEPARATOR)
-                .appendNewline().append(Messages.INPUT_AMOUNT));
-    }
-
-    @EventHandler
-    public void onTradeOrCreate(AsyncChatEvent event) {
-        Player player = event.getPlayer();
-
-        if (!shopManager.hasOperation(player)) return;
-
-        ShopOperation operation = shopManager.getOperation(player);
-
-        if (!(event.message() instanceof TextComponent textComponent)) {
-            player.sendMessage(Messages.INVALID_FORMAT);
+        if (shop == null) {
+            logger.info("Shop {} not found", shopId);
             return;
         }
 
-        logger.info("Player {}[{}] input: {}, operation: {}", player.getName(), player.getUniqueId(), textComponent.content(), operation.getOperationType());
-
-        if (operation.getOperationType() == ShopOperationType.CREATING) {
-            logger.info("Has create operation");
-            event.setCancelled(true);
-
-            double price = NumberUtils.toDouble(textComponent.content(), -1);
-            if (price == -1 || Double.isNaN(price)) {
-                player.sendMessage(Messages.INVALID_FORMAT);
-                return;
-            }
-
-            shopManager.doCreate(player, price);
-        } else if (operation.getOperationType() == ShopOperationType.TRADING) {
-            logger.info("Has trade operation");
-            event.setCancelled(true);
-
-            int amount = NumberUtils.toInt(textComponent.content(), -1);
-            if (amount == -1) {
-                player.sendMessage(Messages.INVALID_FORMAT);
-                return;
-            }
-
-            shopManager.doTrade(player, amount);
-        }
+        final Component generatedMessage = miniMessage.deserialize(
+                "<#e3a7bc><currency_raw></#e3a7bc><#edeed8>======== <#e3a7bc><b>交易</b></#e3a7bc> ========</#edeed8><#e3a7bc><currency_raw></#e3a7bc><br>" +
+                        "<#95d064>店主：</#95d064><#ca7534><owner></#ca7534><br>" +
+                        "<#95d064>类型：</#95d064><shop_mode><br>" +
+                        "<#95d064>物品：</#95d064><item_preview><#8348bf>[预览]</#8348bf></item_preview><br>" +
+                        "<#95d064>单价：</#95d064><currency><price><br>" +
+                        "<#95d064>库存：</#95d064><stock><br>" +
+                        "<#95d064>位置：</#95d064><#b59f7b><chest_location></#b59f7b><br>" +
+                        "<#e3a7bc><currency_raw></#e3a7bc><#edeed8>=====================</#edeed8><#e3a7bc><currency_raw></#e3a7bc>", shop.getTagResolver());
+        player.sendMessage(generatedMessage);
     }
 }
