@@ -199,6 +199,7 @@ public class ShopManager {
         new AnvilGUI.Builder()
                 .mainThreadExecutor(task -> Bukkit.getRegionScheduler().execute(plugin, shopLocation, task))
                 .itemLeft(EMPTY_ITEM)
+                .title("输入商店价格")
                 .plugin(this.plugin)
                 .onClick((slot, stateSnapshot) -> {
                     if (slot != AnvilGUI.Slot.OUTPUT) {
@@ -270,7 +271,7 @@ public class ShopManager {
         new AnvilGUI.Builder()
                 .mainThreadExecutor(task -> Bukkit.getRegionScheduler().execute(plugin, shopLocation, task))
                 .itemLeft(EMPTY_ITEM)
-                .jsonTitle("<green>输入价格</green")
+                .title("输入交易数量")
                 .plugin(this.plugin)
                 .onClick((slot, stateSnapshot) -> {
                     if (slot != AnvilGUI.Slot.OUTPUT) {
@@ -436,6 +437,6 @@ public class ShopManager {
             overflowAmount += item.getAmount();
         }
 
-        return amount - overflowAmount;
+        return amount - remainedAmount - overflowAmount;
     }
 }
