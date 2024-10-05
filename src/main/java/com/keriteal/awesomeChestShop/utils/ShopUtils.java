@@ -115,26 +115,11 @@ public class ShopUtils {
         return false;
     }
 
-    private static final MiniMessage miniMessage = MiniMessage.miniMessage();
-
     public static boolean isValidContainer(Block block) {
         return (block.getType() == Material.CHEST
                 || block.getType() == Material.TRAPPED_CHEST
                 || block.getType() == Material.BARREL
                 || block.getType() == Material.SHULKER_BOX)
                 && block.getState() instanceof Container;
-    }
-
-    public static void showManagementMenu(Player player, ChestShop shop) {
-        Component message = Messages.MESSAGE_SEPARATOR.color(NamedTextColor.DARK_PURPLE);
-        message = message.appendNewline()
-                .append(Component.text("商店管理", NamedTextColor.GREEN));
-        if (player.isOp()) {
-            message = message.appendNewline()
-                    .append(Component.text("商店ID:", NamedTextColor.WHITE))
-                    .append(miniMessage.deserialize("[<shop-id>]", Placeholder.component("shop-id", Component.text(shop.getShopUuid().toString())))
-                            .color(NamedTextColor.AQUA));
-        }
-        player.sendMessage(message);
     }
 }

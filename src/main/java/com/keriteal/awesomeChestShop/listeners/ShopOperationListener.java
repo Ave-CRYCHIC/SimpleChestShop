@@ -9,9 +9,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
 import org.bukkit.entity.Player;
@@ -28,13 +26,11 @@ import java.util.UUID;
 
 public class ShopOperationListener implements Listener {
     private final ShopManager shopManager;
-    private final JavaPlugin plugin;
     private final Logger logger;
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
 
     public ShopOperationListener(JavaPlugin plugin, ShopManager shopManager) {
         this.shopManager = shopManager;
-        this.plugin = plugin;
         this.logger = plugin.getSLF4JLogger();
     }
 

@@ -31,13 +31,9 @@ import org.slf4j.Logger;
 
 import java.util.*;
 
-import static com.keriteal.awesomeChestShop.Messages.MESSAGE_CREATE_SUCCESS;
-
 public class ShopManager {
     private static final ItemStack EMPTY_ITEM = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
-    private static final List<Component> EMPTY_ITEM_LORE = ImmutableList.of(
-            Component.text("点击确认")
-    );
+    private static final List<Component> EMPTY_ITEM_LORE = ImmutableList.of(Component.text("点击输出物品确认"));
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
     private final JavaPlugin plugin;
     private final Map<UUID, ChestShop> existingShops = new HashMap<>();
@@ -247,7 +243,7 @@ public class ShopManager {
                 Location location = shop.getChestBlockLocation();
 
                 logger.info("Shop created at {}, {}, {}", location.getBlockX(), location.getBlockY(), location.getBlockZ());
-                player.sendMessage(MESSAGE_CREATE_SUCCESS
+                player.sendMessage(Messages.MESSAGE_CREATE_SUCCESS
                         .appendNewline()
                         .append(Component.text("物品: "))
                         .append(Component.translatable(shop.getItemStack().translationKey()))
@@ -274,12 +270,12 @@ public class ShopManager {
         new AnvilGUI.Builder()
                 .mainThreadExecutor(task -> Bukkit.getRegionScheduler().execute(plugin, shopLocation, task))
                 .itemLeft(EMPTY_ITEM)
+                .jsonTitle("<green>输入价格</green")
+                .plugin(this.plugin)
                 .onClick((slot, stateSnapshot) -> {
                     if (slot != AnvilGUI.Slot.OUTPUT) {
                         return Collections.emptyList();
                     }
-
-                    logger.info("User input: {}", stateSnapshot.getText());
 
                     int amount = NumberUtils.toInt(stateSnapshot.getText(), -1);
                     if (amount == -1) {
@@ -290,7 +286,6 @@ public class ShopManager {
 
                     return List.of(AnvilGUI.ResponseAction.close());
                 })
-                .plugin(this.plugin)
                 .open(player);
     }
 
@@ -339,11 +334,6 @@ public class ShopManager {
                 return;
             }
 
-//            if (shop.getStock() < amount) {
-//                player.sendMessage(Component.text("商店库存不足", NamedTextColor.RED));
-//                playerOperations.remove(player.getUniqueId());
-//                return;
-//            }
             realTradeAmount = Math.min(realTradeAmount, shop.getStock());
 
             Inventory shopInventory = inventoryHolder.getInventory();
@@ -436,7 +426,6 @@ public class ShopManager {
             transferItem.setAmount(transferredAmount);
             shopItem.setAmount(shopItem.getAmount() - transferredAmount);
 
-            logger.info("Transfer: {}", transferItem);
             tradingItems.add(transferItem);
             remainedAmount -= transferredAmount;
         }
@@ -447,7 +436,6 @@ public class ShopManager {
             overflowAmount += item.getAmount();
         }
 
-        logger.info("OverflowAmount: {}", overflowAmount);
         return amount - overflowAmount;
     }
 }
