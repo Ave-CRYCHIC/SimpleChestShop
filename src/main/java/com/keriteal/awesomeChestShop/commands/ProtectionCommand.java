@@ -116,7 +116,7 @@ public class ProtectionCommand implements CommandExecutor, TabCompleter {
                 }
                 switch (args[1].toLowerCase()) {
                     case "type": {
-                        logger.info("Modifying shop type");
+//                        logger.info("Modifying shop type");
                         if (args.length < 3) return false;
 
                         Block block = null;
@@ -237,7 +237,7 @@ public class ProtectionCommand implements CommandExecutor, TabCompleter {
         }
 
         if (shop.getChestBlockLocation().getBlock().getState() instanceof InventoryHolder inventoryHolder) {
-            logger.info("Opening inventory");
+//            logger.info("Opening inventory");
             player.openInventory(shop.getInventory());
         }
     }

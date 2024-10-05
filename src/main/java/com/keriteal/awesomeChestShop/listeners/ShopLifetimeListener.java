@@ -55,12 +55,12 @@ public class ShopLifetimeListener implements Listener {
             player.sendMessage(Component.text("无法获取告示牌放置的位置"));
             return;
         }
-        logger.info(blockFace.name());
+//        logger.info(blockFace.name());
 
         // 交互了上边或下边
         if (blockFace.getModY() != 0) {
             blockFace = getClosestFace(BlockUtils.getBlockCenterLocation(clickedBlock), traceResult.getHitPosition());
-            logger.info(blockFace.name());
+//            logger.info(blockFace.name());
         }
 
         shopManager.prepareCreate(player, clickedBlock.getLocation(), item, blockFace);

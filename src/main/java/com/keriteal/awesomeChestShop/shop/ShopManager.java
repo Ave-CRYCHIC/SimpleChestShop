@@ -5,12 +5,14 @@ import com.keriteal.awesomeChestShop.AwesomeChestShop;
 import com.keriteal.awesomeChestShop.Messages;
 import com.keriteal.awesomeChestShop.ShopType;
 import com.keriteal.awesomeChestShop.shop.operations.IShopOperation;
+import com.keriteal.awesomeChestShop.utils.ItemUtils;
 import com.keriteal.awesomeChestShop.utils.ShopUtils;
 import io.papermc.paper.threadedregions.scheduler.RegionScheduler;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.wesjd.anvilgui.AnvilGUI;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.bukkit.*;
@@ -164,7 +166,7 @@ public class ShopManager {
             return;
         }
         ChestShop shop = existingShops.get(shopId);
-        logger.info("Changing shop {} type from {} to {}", shopId, shop.getShopType(), type);
+//        logger.info("Changing shop {} type from {} to {}", shopId, shop.getShopType(), type);
         shop.setShopType(type);
     }
 
@@ -234,7 +236,7 @@ public class ShopManager {
 
         RegionScheduler scheduler = Bukkit.getServer().getRegionScheduler();
         scheduler.execute(this.plugin, shop.getChestBlockLocation(), () -> {
-            logger.info("Creating shop for player {} at {}, {}, {}",
+//            logger.info("Creating shop for player {} at {}, {}, {}",
                     player.getName(),
                     shop.getChestBlockLocation().getBlockX(),
                     shop.getChestBlockLocation().getBlockY(),
@@ -243,7 +245,7 @@ public class ShopManager {
             if (result) {
                 Location location = shop.getChestBlockLocation();
 
-                logger.info("Shop created at {}, {}, {}", location.getBlockX(), location.getBlockY(), location.getBlockZ());
+//                logger.info("Shop created at {}, {}, {}", location.getBlockX(), location.getBlockY(), location.getBlockZ());
                 player.sendMessage(Messages.MESSAGE_CREATE_SUCCESS
                         .appendNewline()
                         .append(Component.text("物品: "))
@@ -264,7 +266,7 @@ public class ShopManager {
             return;
         }
 
-        logger.info("Player {} is preparing to trade with shop {}", player.getName(), shopId);
+//        logger.info("Player {} is preparing to trade with shop {}", player.getName(), shopId);
         final Location shopLocation = shop.getChestBlockLocation();
         ShopTradingOperation operation = new ShopTradingOperation(this, player.getUniqueId(), shopLocation);
         playerOperations.put(player.getUniqueId(), operation);
@@ -301,7 +303,7 @@ public class ShopManager {
         Location tradingShop = getOperation(player).getShopLocation();
 
         Bukkit.getRegionScheduler().execute(plugin, tradingShop, () -> {
-            logger.info("Doing trading runnable");
+//            logger.info("Doing trading runnable");
             ChestShop shop = loadShopAt(tradingShop);
 
             if (shop == null) {
@@ -362,6 +364,12 @@ public class ShopManager {
                         shop.getTagResolver(successAmount),
                         Messages.buildBalanceComponent(trader),
                         Formatter.number("amount", successAmount)));
+                Objects.requireNonNull(owner.getPlayer()).sendMessage(miniMessage.deserialize("<green><player>在你的商店出售了<amount>个<item>，你支出了<price>，余额：<balance></green>",
+                        shop.getTagResolver(successAmount),
+                        Messages.buildBalanceComponent(owner),
+                        Formatter.number("amount", successAmount),
+                        Placeholder.component("player", miniMessage.deserialize(player.getName())),
+                        Placeholder.component("item", ItemUtils.getItemName(shop.getItemStack()).append(Component.text("[预览]", NamedTextColor.AQUA).hoverEvent(shop.getItemStack())))));
             } else {
                 AwesomeChestShop.getEconomy().withdrawPlayer(trader, shop.getPrice() * successAmount);
                 AwesomeChestShop.getEconomy().depositPlayer(owner, shop.getPrice() * successAmount);
@@ -369,6 +377,13 @@ public class ShopManager {
                         shop.getTagResolver(successAmount),
                         Messages.buildBalanceComponent(trader),
                         Formatter.number("amount", successAmount)));
+                Objects.requireNonNull(owner.getPlayer()).sendMessage(miniMessage.deserialize("<green><player>在你的商店购买了<amount>个<item>，你获得了<price>，余额：<balance></green>",
+                        shop.getTagResolver(successAmount),
+                        Messages.buildBalanceComponent(owner),
+                        Formatter.number("amount", successAmount),
+                        Placeholder.component("player", miniMessage.deserialize(player.getName())),
+                        Placeholder.component("item", ItemUtils.getItemName(shop.getItemStack()).append(Component.text("[预览]", NamedTextColor.AQUA).hoverEvent(shop.getItemStack())))));
+
             }
             shop.updateWorld();
         });
@@ -409,7 +424,7 @@ public class ShopManager {
      * @return Amount of successfully transferred items
      */
     private int transferItem(Inventory fromInventory, Inventory toInventory, UUID shopUuid, int amount) {
-        logger.info("Transferring {} item from {} to {}", amount, fromInventory.getHolder(), toInventory.getHolder());
+//        logger.info("Transferring {} item from {} to {}", amount, fromInventory.getHolder(), toInventory.getHolder());
         int remainedAmount = amount;
         List<ItemStack> tradingItems = new LinkedList<>();
         ChestShop shop = getShop(shopUuid);

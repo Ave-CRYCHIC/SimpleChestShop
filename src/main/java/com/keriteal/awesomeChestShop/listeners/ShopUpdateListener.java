@@ -60,7 +60,7 @@ public class ShopUpdateListener implements Listener {
             }
         }
         if (shopCount > 0) {
-            logger.info("加载位于 {}, {} 区块的商店，共 {} 个，用时：{} ms", event.getChunk().getX(), event.getChunk().getZ(), shopCount, System.currentTimeMillis() - start);
+//            logger.info("加载位于 {}, {} 区块的商店，共 {} 个，用时：{} ms", event.getChunk().getX(), event.getChunk().getZ(), shopCount, System.currentTimeMillis() - start);
         }
     }
 

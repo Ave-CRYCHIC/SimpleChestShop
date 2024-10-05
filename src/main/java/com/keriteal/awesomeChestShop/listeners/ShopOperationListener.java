@@ -68,7 +68,7 @@ public class ShopOperationListener implements Listener {
             return;
         }
 
-        logger.info("Changing shop type at {}, {}, {}", location.getBlockX(), location.getBlockY(), location.getBlockZ());
+        //logger.info("Changing shop type at {}, {}, {}", location.getBlockX(), location.getBlockY(), location.getBlockZ());
         shop.setShopType(shop.getShopType().nextType());
     }
 

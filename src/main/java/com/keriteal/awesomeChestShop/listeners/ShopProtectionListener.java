@@ -42,7 +42,7 @@ public class ShopProtectionListener implements Listener {
         if (event.getInventory().getHolder() instanceof Container container) {
             shop = shopManager.loadShopAt(container.getBlock());
         } else if (event.getInventory().getHolder() instanceof DoubleChest doubleChest) {
-            logger.info("Double chest at {}", doubleChest.getLocation());
+//            logger.info("Double chest at {}", doubleChest.getLocation());
             shop = shopManager.loadShopAt(doubleChest.getLocation());
         }
 
@@ -115,14 +115,14 @@ public class ShopProtectionListener implements Listener {
         ChestShop shop = shopManager.loadShopAt(block);
         if (shop == null) return;
 
-        logger.info("Deleting chest shop at {}", shop.getChestBlockLocation());
+//        logger.info("Deleting chest shop at {}", shop.getChestBlockLocation());
         if (shop.getOwnerId().equals(event.getPlayer().getUniqueId())) {
-            logger.info("Player {} is deleting his own shop", event.getPlayer().getName());
+//            logger.info("Player {} is deleting his own shop", event.getPlayer().getName());
             if (ShopUtils.isShopMainBlock(block)) {
                 shopManager.deleteShop(shop.getShopUuid());
             }
         } else {
-            logger.info("Deleting rejected");
+//            logger.info("Deleting rejected");
             event.getPlayer().sendMessage(Component.text("你不能破坏别人的商店", NamedTextColor.RED));
             event.setCancelled(true);
         }
