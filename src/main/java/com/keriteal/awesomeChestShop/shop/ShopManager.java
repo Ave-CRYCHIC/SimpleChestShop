@@ -237,10 +237,10 @@ public class ShopManager {
         RegionScheduler scheduler = Bukkit.getServer().getRegionScheduler();
         scheduler.execute(this.plugin, shop.getChestBlockLocation(), () -> {
 //            logger.info("Creating shop for player {} at {}, {}, {}",
-                    player.getName(),
-                    shop.getChestBlockLocation().getBlockX(),
-                    shop.getChestBlockLocation().getBlockY(),
-                    shop.getChestBlockLocation().getBlockZ());
+//                    player.getName(),
+//                    shop.getChestBlockLocation().getBlockX(),
+//                    shop.getChestBlockLocation().getBlockY(),
+//                    shop.getChestBlockLocation().getBlockZ());
             boolean result = shop.create(price);
             if (result) {
                 Location location = shop.getChestBlockLocation();
