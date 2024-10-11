@@ -89,21 +89,22 @@ public class ShopProtectionListener implements Listener {
             return;
         }
         if (!ShopUtils.isShopBlock(shopBlock)) return;
-        if (anotherHolder instanceof HumanEntity entity) {
-            UUID id = entity.getUniqueId();
-            ChestShop shop = shopManager.loadShopAt(shopBlock);
-            if (shop == null) return;
-            if (id.equals(shop.getOwnerId())) return;
-            event.setCancelled(true);
-        } else if (anotherHolder instanceof HopperMinecart) {
-            event.setCancelled(true);
-        } else if (anotherHolder instanceof Hopper) {
-            event.setCancelled(true);
-        }else  if (anotherHolder instanceof Dropper) {
-            event.setCancelled(true);
-        } else if (anotherHolder instanceof Dispenser) {
-            event.setCancelled(true);
-        }
+        event.setCancelled(true);
+//        if (anotherHolder instanceof HumanEntity entity) {
+//            UUID id = entity.getUniqueId();
+//            ChestShop shop = shopManager.loadShopAt(shopBlock);
+//            if (shop == null) return;
+//            if (id.equals(shop.getOwnerId())) return;
+//            event.setCancelled(true);
+//        } else if (anotherHolder instanceof HopperMinecart) {
+//            event.setCancelled(true);
+//        } else if (anotherHolder instanceof Hopper) {
+//            event.setCancelled(true);
+//        }else  if (anotherHolder instanceof Dropper) {
+//            event.setCancelled(true);
+//        } else if (anotherHolder instanceof Dispenser) {
+//            event.setCancelled(true);
+//        }
     }
 
     @EventHandler
