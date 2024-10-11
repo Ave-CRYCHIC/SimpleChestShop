@@ -5,10 +5,7 @@ import com.keriteal.awesomeChestShop.shop.ShopManager;
 import com.keriteal.awesomeChestShop.utils.ShopUtils;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.block.Block;
-import org.bukkit.block.Container;
-import org.bukkit.block.DoubleChest;
-import org.bukkit.block.Hopper;
+import org.bukkit.block.*;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.minecart.HopperMinecart;
 import org.bukkit.event.EventHandler;
@@ -79,30 +76,32 @@ public class ShopProtectionListener implements Listener {
         if (sourceHolder instanceof DoubleChest doubleChest) {
             shopBlock = doubleChest.getLocation().getBlock();
             anotherHolder = destHolder;
-        } else if (sourceHolder instanceof Container container) {
+        } else if (sourceHolder instanceof Chest container) {
             shopBlock = container.getLocation().getBlock();
             anotherHolder = destHolder;
         } else if (destHolder instanceof DoubleChest doubleChest) {
             shopBlock = doubleChest.getLocation().getBlock();
             anotherHolder = sourceHolder;
-        } else if (destHolder instanceof Container container) {
+        } else if (destHolder instanceof Chest container) {
             shopBlock = container.getLocation().getBlock();
             anotherHolder = sourceHolder;
         } else {
             return;
         }
-
         if (!ShopUtils.isShopBlock(shopBlock)) return;
         if (anotherHolder instanceof HumanEntity entity) {
             UUID id = entity.getUniqueId();
             ChestShop shop = shopManager.loadShopAt(shopBlock);
             if (shop == null) return;
-
             if (id.equals(shop.getOwnerId())) return;
             event.setCancelled(true);
         } else if (anotherHolder instanceof HopperMinecart) {
             event.setCancelled(true);
-        } else if (destHolder instanceof Hopper) {
+        } else if (anotherHolder instanceof Hopper) {
+            event.setCancelled(true);
+        }else  if (anotherHolder instanceof Dropper) {
+            event.setCancelled(true);
+        } else if (anotherHolder instanceof Dispenser) {
             event.setCancelled(true);
         }
     }
