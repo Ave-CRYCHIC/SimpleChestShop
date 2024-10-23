@@ -393,13 +393,16 @@ public class ShopManager {
         List<Integer> slots = new LinkedList<>();
         int successItems = 0;
 
-        for (int i = 0; i < shopInventory.getSize(); i++) {
+        for (int i = 0; i < shopInventory.getSize()-1; i++) {
             ItemStack item = shopInventory.getItem(i);
             if (item == null) continue;
             slots.add(i);
         }
 
         Collections.shuffle(slots, new Random(System.currentTimeMillis()));
+        if(shopInventory.getItem(shopInventory.getSize()-1)!=null){
+            slots.add(shopInventory.getSize()-1);
+        }
 
         for (int i = 0; i < ticketAmount; i++) {
             int chosenIndex = slots.get(i);
